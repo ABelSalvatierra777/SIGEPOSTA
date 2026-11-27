@@ -1,0 +1,732 @@
+﻿
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormFarmacia : Form
+    {
+        private readonly BindingList<MedicamentoVista> medicamentos = new();
+
+        private CampoInventario txtCodigo = new();
+        private CampoInventario txtNombre = new();
+        private CampoInventario txtPrincipioActivo = new();
+        private CampoInventario txtConcentracion = new();
+        private CampoInventario txtPresentacion = new();
+        private CampoInventario txtLaboratorio = new();
+        private CampoInventario txtStock = new();
+        private CampoInventario txtStockMinimo = new();
+        private CampoInventario txtPrecio = new();
+        private CampoInventario txtObservacion = new();
+
+        private ComboBox cmbCategoria = new();
+        private ComboBox cmbEstado = new();
+
+        private DateTimePicker dtpVencimiento = new();
+
+        private DataGridView dgvMedicamentos = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormFarmacia()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+        }
+
+        // ═══════════════════════ INTERFAZ ═══════════════════════
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Farmacia";
+            Size = new Size(1250, 900);
+            MinimumSize = new Size(1100, 800);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            // ENCABEZADO
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "GESTIÓN DE FARMACIA",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Administración y control del catálogo de medicamentos",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            // CUERPO
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel columna = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            columna.Controls.Add(CrearGrupoMedicamento());
+            columna.Controls.Add(CrearBotonera());
+            columna.Controls.Add(CrearGrupoTabla());
+
+            cuerpo.Controls.Add(columna);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        // ═══════════════════════ GRUPO MEDICAMENTO ═══════════════════════
+
+        private GroupBox CrearGrupoMedicamento()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Información del medicamento", 390);
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 5,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 30));
+
+            for (int i = 0; i < 5; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 52));
+            }
+
+            txtCodigo = NuevoCampo();
+            txtNombre = NuevoCampo();
+            txtPrincipioActivo = NuevoCampo();
+            txtConcentracion = NuevoCampo();
+            txtPresentacion = NuevoCampo();
+            txtLaboratorio = NuevoCampo();
+            txtStock = NuevoCampo();
+            txtStockMinimo = NuevoCampo();
+            txtPrecio = NuevoCampo();
+            txtObservacion = NuevaArea();
+
+            cmbCategoria = NuevoCombo(
+                "Analgésico",
+                "Antibiótico",
+                "Antiinflamatorio",
+                "Antipirético",
+                "Antihistamínico",
+                "Antiséptico",
+                "Otro");
+
+            cmbEstado = NuevoCombo(
+                "Disponible",
+                "Suspendido",
+                "Retirado");
+
+            dtpVencimiento = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            // FILA 1
+            AgregarPar(rejilla, "Código:", txtCodigo, 0, 0);
+            AgregarPar(rejilla, "Nombre:", txtNombre, 2, 0);
+            AgregarPar(rejilla, "Principio activo:", txtPrincipioActivo, 4, 0);
+
+            // FILA 2
+            AgregarPar(rejilla, "Concentración:", txtConcentracion, 0, 1);
+            AgregarPar(rejilla, "Presentación:", txtPresentacion, 2, 1);
+            AgregarPar(rejilla, "Laboratorio:", txtLaboratorio, 4, 1);
+
+            // FILA 3
+            AgregarPar(rejilla, "Categoría:", cmbCategoria, 0, 2);
+            AgregarPar(rejilla, "Stock actual:", txtStock, 2, 2);
+            AgregarPar(rejilla, "Stock mínimo:", txtStockMinimo, 4, 2);
+
+            // FILA 4
+            AgregarPar(rejilla, "Precio unitario:", txtPrecio, 0, 3);
+            AgregarPar(rejilla, "Vencimiento:", dtpVencimiento, 2, 3);
+            AgregarPar(rejilla, "Estado:", cmbEstado, 4, 3);
+
+            // FILA 5
+            Label lblObservacion = NuevaEtiqueta("Observación:");
+            rejilla.Controls.Add(lblObservacion, 0, 4);
+            rejilla.Controls.Add(txtObservacion, 1, 4);
+            rejilla.SetColumnSpan(txtObservacion, 5);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ BOTONERA ═══════════════════════
+
+        private Control CrearBotonera()
+        {
+            Panel contenedor = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 66,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Margin = new Padding(0, 0, 0, 14)
+            };
+
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0, 8, 0, 0)
+            };
+
+            Button btnRegistrar = NuevoBoton(
+                "REGISTRAR", TipoBoton.Primario);
+            btnRegistrar.Click += (s, e) => Registrar();
+
+            Button btnActualizar = NuevoBoton(
+                "ACTUALIZAR", TipoBoton.Primario);
+            btnActualizar.Click += (s, e) => Actualizar();
+
+            Button btnEliminar = NuevoBoton(
+                "ELIMINAR", TipoBoton.Peligro);
+            btnEliminar.Click += (s, e) => Eliminar();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+            btnLimpiar.Click += (s, e) => Limpiar();
+
+            fila.Controls.Add(btnRegistrar);
+            fila.Controls.Add(btnActualizar);
+            fila.Controls.Add(btnEliminar);
+            fila.Controls.Add(btnLimpiar);
+
+            Action centrar = () =>
+            {
+                fila.Left = Math.Max(
+                    0, (contenedor.ClientSize.Width - fila.Width) / 2);
+                fila.Top = 0;
+            };
+
+            contenedor.Controls.Add(fila);
+            contenedor.Resize += (s, e) => centrar();
+            fila.SizeChanged += (s, e) => centrar();
+
+            centrar();
+
+            return contenedor;
+        }
+        // ═══════════════════════ TABLA ═══════════════════════
+
+        private GroupBox CrearGrupoTabla()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Catálogo de medicamentos", 280);
+
+            dgvMedicamentos = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoGenerateColumns = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                Margin = new Padding(5)
+            };
+
+            dgvMedicamentos.SelectionChanged +=
+                (s, e) => Seleccionar();
+
+            grupo.Controls.Add(dgvMedicamentos);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ AYUDAS DE DISEÑO ═══════════════════════
+
+        private GroupBox CrearGrupo(string titulo, int alto)
+        {
+            return new GroupBox
+            {
+                Text = titulo,
+                Dock = DockStyle.Top,
+                Height = alto,
+                Margin = new Padding(0, 0, 0, 14),
+                Padding = new Padding(16, 10, 16, 10)
+            };
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = NuevaEtiqueta(texto);
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 6, 18, 6);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private Label NuevaEtiqueta(string texto)
+        {
+            return new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 0, 10, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+        }
+
+        private CampoInventario NuevaArea()
+        {
+            CampoInventario campo = new CampoInventario();
+            campo.ConfigurarMultilinea(true, ScrollBars.Vertical);
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 5, 15, 8);
+            return campo;
+        }
+        private ComboBox NuevoCombo(params string[] opciones)
+        {
+            ComboBox combo = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            combo.Items.AddRange(opciones);
+            combo.SelectedIndex = 0;
+
+            return combo;
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(0, 0, 12, 0)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        // ═══════════════════════ CONFIGURACIÓN TABLA ═══════════════════════
+
+        private void ConfigurarTabla()
+        {
+            TemaSIGEPOSTA.EstilizarTabla(dgvMedicamentos);
+
+            Columna("Codigo", "Código");
+            Columna("Nombre", "Medicamento");
+            Columna("Concentracion", "Concentración");
+            Columna("Presentacion", "Presentación");
+            Columna("Stock", "Stock");
+            Columna("Vencimiento", "Vencimiento");
+            Columna("Estado", "Estado");
+
+            dgvMedicamentos.Columns["Vencimiento"]!
+                .DefaultCellStyle.Format = "dd/MM/yyyy";
+
+            dgvMedicamentos.DataSource = medicamentos;
+        }
+
+        private void Columna(string propiedad, string titulo)
+        {
+            dgvMedicamentos.Columns.Add(
+                new DataGridViewTextBoxColumn
+                {
+                    Name = propiedad,
+                    DataPropertyName = propiedad,
+                    HeaderText = titulo
+                });
+        }
+
+
+// ═══════════════════════ ESTILOS ═══════════════════════
+
+private void AplicarEstilos()
+{
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = TemaSIGEPOSTA.Fuente;
+
+    AplicarEstilosRecursivos(this);
+
+    // Categoría y estado
+    TemaSIGEPOSTA.EstilizarComboBox(cmbCategoria);
+    TemaSIGEPOSTA.EstilizarComboBox(cmbEstado);
+
+    // Fecha de vencimiento
+    TemaSIGEPOSTA.EstilizarFecha(dtpVencimiento);
+
+    // Tabla de medicamentos
+    TemaSIGEPOSTA.EstilizarTabla(dgvMedicamentos);
+}
+
+private void AplicarEstilosRecursivos(Control control)
+{
+    if (control is GroupBox grupo)
+    {
+        TemaSIGEPOSTA.EstilizarGrupo(grupo);
+    }
+    else if (control is TextBox caja)
+    {
+        if (caja.Multiline)
+        {
+            caja.BackColor = TemaSIGEPOSTA.FondoCampo;
+            caja.ForeColor = TemaSIGEPOSTA.Texto;
+            caja.Font = TemaSIGEPOSTA.FuenteCampo;
+            caja.BorderStyle = BorderStyle.FixedSingle;
+        }
+        else
+        {
+            TemaSIGEPOSTA.EstilizarTextBox(caja);
+        }
+    }
+    else if (control is ComboBox combo)
+    {
+        TemaSIGEPOSTA.EstilizarComboBox(combo);
+    }
+    else if (control is Label etiqueta)
+    {
+        TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+    }
+    else if (control is Button boton)
+    {
+        TipoBoton tipo = boton.Text.Contains("ELIMINAR")
+            ? TipoBoton.Peligro
+            : boton.Text.Contains("LIMPIAR")
+                ? TipoBoton.Secundario
+                : TipoBoton.Primario;
+
+        TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+    }
+
+    foreach (Control hijo in control.Controls)
+    {
+        AplicarEstilosRecursivos(hijo);
+    }
+}
+
+
+        // ═══════════════════════ LÓGICA ═══════════════════════
+
+        private void Registrar()
+        {
+            if (!Validar())
+                return;
+
+            if (medicamentos.Any(m =>
+                m.Codigo.Equals(
+                    txtCodigo.Text.Trim(),
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(
+                    "Ya existe un medicamento con ese código.");
+                return;
+            }
+
+            medicamentos.Add(ObtenerDatos());
+
+            MessageBox.Show("Medicamento registrado correctamente.");
+            Limpiar();
+        }
+
+        private void Actualizar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= medicamentos.Count)
+            {
+                MessageBox.Show("Seleccione un medicamento.");
+                return;
+            }
+
+            if (!Validar())
+                return;
+
+            string codigo = txtCodigo.Text.Trim();
+
+            if (medicamentos.Where((m, i) => i != indiceSeleccionado)
+                .Any(m => m.Codigo.Equals(
+                    codigo,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(
+                    "El código ya pertenece a otro medicamento.");
+                return;
+            }
+
+            MedicamentoVista nuevo = ObtenerDatos();
+            MedicamentoVista anterior = medicamentos[indiceSeleccionado];
+
+            anterior.Codigo = nuevo.Codigo;
+            anterior.Nombre = nuevo.Nombre;
+            anterior.PrincipioActivo = nuevo.PrincipioActivo;
+            anterior.Concentracion = nuevo.Concentracion;
+            anterior.Presentacion = nuevo.Presentacion;
+            anterior.Laboratorio = nuevo.Laboratorio;
+            anterior.Categoria = nuevo.Categoria;
+            anterior.Stock = nuevo.Stock;
+            anterior.StockMinimo = nuevo.StockMinimo;
+            anterior.Precio = nuevo.Precio;
+            anterior.Vencimiento = nuevo.Vencimiento;
+            anterior.Estado = nuevo.Estado;
+            anterior.Observacion = nuevo.Observacion;
+
+            dgvMedicamentos.Refresh();
+
+            MessageBox.Show("Medicamento actualizado correctamente.");
+            Limpiar();
+        }
+
+        private void Eliminar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= medicamentos.Count)
+            {
+                MessageBox.Show("Seleccione un medicamento.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Desea eliminar este medicamento del catálogo?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                medicamentos.RemoveAt(indiceSeleccionado);
+
+                MessageBox.Show("Medicamento eliminado.");
+                Limpiar();
+            }
+        }
+
+        private void Seleccionar()
+        {
+            if (dgvMedicamentos.CurrentRow?.DataBoundItem
+                is not MedicamentoVista m)
+                return;
+
+            indiceSeleccionado = medicamentos.IndexOf(m);
+
+            txtCodigo.Text = m.Codigo;
+            txtNombre.Text = m.Nombre;
+            txtPrincipioActivo.Text = m.PrincipioActivo;
+            txtConcentracion.Text = m.Concentracion;
+            txtPresentacion.Text = m.Presentacion;
+            txtLaboratorio.Text = m.Laboratorio;
+
+            cmbCategoria.SelectedItem = m.Categoria;
+
+            txtStock.Text = m.Stock.ToString();
+            txtStockMinimo.Text = m.StockMinimo.ToString();
+            txtPrecio.Text = m.Precio.ToString("0.00");
+
+            dtpVencimiento.Value = m.Vencimiento;
+            cmbEstado.SelectedItem = m.Estado;
+            txtObservacion.Text = m.Observacion ?? string.Empty;
+        }
+
+        private bool Validar()
+        {
+            if (string.IsNullOrWhiteSpace(txtCodigo.Text) ||
+                string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtPrincipioActivo.Text) ||
+                string.IsNullOrWhiteSpace(txtConcentracion.Text) ||
+                string.IsNullOrWhiteSpace(txtPresentacion.Text))
+            {
+                MessageBox.Show("Complete los campos obligatorios.");
+                return false;
+            }
+
+            if (!int.TryParse(txtStock.Text, out int stock) || stock < 0)
+            {
+                MessageBox.Show("Ingrese un stock válido.");
+                return false;
+            }
+
+            if (!int.TryParse(txtStockMinimo.Text, out int minimo) ||
+                minimo < 0)
+            {
+                MessageBox.Show("Ingrese un stock mínimo válido.");
+                return false;
+            }
+
+            if (!decimal.TryParse(txtPrecio.Text, out decimal precio) ||
+                precio < 0)
+            {
+                MessageBox.Show("Ingrese un precio válido.");
+                return false;
+            }
+
+            if (cmbCategoria.SelectedItem == null ||
+                cmbEstado.SelectedItem == null)
+            {
+                MessageBox.Show(
+                    "Seleccione una categoría y un estado.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private MedicamentoVista ObtenerDatos()
+        {
+            return new MedicamentoVista
+            {
+                Codigo = txtCodigo.Text.Trim(),
+                Nombre = txtNombre.Text.Trim(),
+                PrincipioActivo = txtPrincipioActivo.Text.Trim(),
+                Concentracion = txtConcentracion.Text.Trim(),
+                Presentacion = txtPresentacion.Text.Trim(),
+                Laboratorio = txtLaboratorio.Text.Trim(),
+                Categoria = cmbCategoria.Text,
+                Stock = int.Parse(txtStock.Text),
+                StockMinimo = int.Parse(txtStockMinimo.Text),
+                Precio = decimal.Parse(txtPrecio.Text),
+                Vencimiento = dtpVencimiento.Value.Date,
+                Estado = cmbEstado.Text,
+                Observacion = txtObservacion.Text.Trim()
+            };
+        }
+
+        private void Limpiar()
+        {
+            indiceSeleccionado = -1;
+
+            txtCodigo.Clear();
+            txtNombre.Clear();
+            txtPrincipioActivo.Clear();
+            txtConcentracion.Clear();
+            txtPresentacion.Clear();
+            txtLaboratorio.Clear();
+            txtStock.Clear();
+            txtStockMinimo.Clear();
+            txtPrecio.Clear();
+            txtObservacion.Clear();
+
+            cmbCategoria.SelectedIndex = 0;
+            cmbEstado.SelectedIndex = 0;
+            dtpVencimiento.Value = DateTime.Today;
+
+            dgvMedicamentos.ClearSelection();
+        }
+
+        // ═══════════════════════ MODELO ═══════════════════════
+
+        private class MedicamentoVista
+        {
+            public string Codigo { get; set; } = "";
+            public string Nombre { get; set; } = "";
+            public string PrincipioActivo { get; set; } = "";
+            public string Concentracion { get; set; } = "";
+            public string Presentacion { get; set; } = "";
+            public string Laboratorio { get; set; } = "";
+            public string Categoria { get; set; } = "";
+            public int Stock { get; set; }
+            public int StockMinimo { get; set; }
+            public decimal Precio { get; set; }
+            public DateTime Vencimiento { get; set; }
+            public string Estado { get; set; } = "";
+            public string Observacion { get; set; } = "";
+        }
+    }
+}
+
+
+
+

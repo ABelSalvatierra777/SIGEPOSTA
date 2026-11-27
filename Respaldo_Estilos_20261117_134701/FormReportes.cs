@@ -1,0 +1,287 @@
+﻿using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormReportes : Form
+    {
+        private ComboBox cmbReporte = new();
+        private DateTimePicker dtpDesde = new();
+        private DateTimePicker dtpHasta = new();
+        private DataGridView dgvReporte = new();
+        private Label lblResumen = new();
+
+        public FormReportes()
+        {
+            ConstruirFormulario();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Reportes";
+            Size = new Size(1200, 760);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(245, 247, 249);
+            Font = new Font("Segoe UI", 10);
+
+            Panel encabezado = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 80,
+                BackColor = Color.FromArgb(31, 77, 54)
+            };
+
+            encabezado.Controls.Add(new Label
+            {
+                Text = "REPORTES DEL ESTABLECIMIENTO",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 19, FontStyle.Bold),
+                Location = new Point(25, 18),
+                AutoSize = true
+            });
+
+            Controls.Add(encabezado);
+
+            Controls.Add(new Label
+            {
+                Text = "Consulta y generación de reportes administrativos y clínicos",
+                Location = new Point(25, 95),
+                AutoSize = true,
+                ForeColor = Color.DimGray
+            });
+
+            GroupBox grupoFiltros = new GroupBox
+            {
+                Text = "Filtros del reporte",
+                Location = new Point(25, 130),
+                Size = new Size(1135, 145)
+            };
+
+            Controls.Add(grupoFiltros);
+
+            Etiqueta(grupoFiltros, "Tipo de reporte:", 20, 35);
+
+            cmbReporte = new ComboBox
+            {
+                Location = new Point(145, 32),
+                Width = 300,
+                DropDownStyle = ComboBoxStyle.DropDownList
+            };
+
+            cmbReporte.Items.AddRange(new object[]
+            {
+                "Reporte de pacientes",
+                "Reporte de personal de salud",
+                "Reporte de citas médicas",
+                "Reporte de atenciones médicas",
+                "Reporte de diagnósticos",
+                "Reporte de medicamentos",
+                "Reporte de movimientos de inventario"
+            });
+
+            cmbReporte.SelectedIndex = 0;
+            grupoFiltros.Controls.Add(cmbReporte);
+
+            Etiqueta(grupoFiltros, "Desde:", 480, 35);
+
+            dtpDesde = new DateTimePicker
+            {
+                Location = new Point(550, 32),
+                Width = 180,
+                Format = DateTimePickerFormat.Short
+            };
+
+            grupoFiltros.Controls.Add(dtpDesde);
+
+            Etiqueta(grupoFiltros, "Hasta:", 760, 35);
+
+            dtpHasta = new DateTimePicker
+            {
+                Location = new Point(825, 32),
+                Width = 180,
+                Format = DateTimePickerFormat.Short
+            };
+
+            grupoFiltros.Controls.Add(dtpHasta);
+
+            Button btnConsultar = Boton(
+                "CONSULTAR",
+                145,
+                85,
+                Color.FromArgb(46, 125, 50)
+            );
+
+            btnConsultar.Click += (s, e) => Consultar();
+            grupoFiltros.Controls.Add(btnConsultar);
+
+            Button btnLimpiar = Boton(
+                "LIMPIAR",
+                310,
+                85,
+                Color.FromArgb(97, 97, 97)
+            );
+
+            btnLimpiar.Click += (s, e) => Limpiar();
+            grupoFiltros.Controls.Add(btnLimpiar);
+
+            GroupBox grupoResultados = new GroupBox
+            {
+                Text = "Resultados del reporte",
+                Location = new Point(25, 295),
+                Size = new Size(1135, 340)
+            };
+
+            Controls.Add(grupoResultados);
+
+            dgvReporte = new DataGridView
+            {
+                Location = new Point(12, 25),
+                Size = new Size(1110, 270),
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = true
+            };
+
+            grupoResultados.Controls.Add(dgvReporte);
+
+            lblResumen = new Label
+            {
+                Text = "Sin información para mostrar.",
+                Location = new Point(30, 650),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(31, 77, 54),
+                Font = new Font("Segoe UI", 11, FontStyle.Bold)
+            };
+
+            Controls.Add(lblResumen);
+
+            Button btnExportar = Boton(
+                "EXPORTAR CSV",
+                25,
+                685,
+                Color.FromArgb(25, 118, 210)
+            );
+
+            btnExportar.Click += (s, e) => ExportarCSV();
+            Controls.Add(btnExportar);
+        }
+
+        private void Consultar()
+        {
+            if (dtpDesde.Value.Date > dtpHasta.Value.Date)
+            {
+                MessageBox.Show("La fecha inicial no puede ser posterior a la fecha final.");
+                return;
+            }
+
+            dgvReporte.DataSource = null;
+            lblResumen.Text = "Reporte seleccionado: " + cmbReporte.Text +
+                              " | Periodo: " +
+                              dtpDesde.Value.ToShortDateString() + " - " +
+                              dtpHasta.Value.ToShortDateString();
+
+            MessageBox.Show(
+                "La estructura del reporte está preparada. " +
+                "Los resultados se conectarán con SQL Server posteriormente."
+            );
+        }
+
+        private void ExportarCSV()
+        {
+            if (dgvReporte.Columns.Count == 0 ||
+                dgvReporte.Rows.Count == 0)
+            {
+                MessageBox.Show("No existen resultados para exportar.");
+                return;
+            }
+
+            using SaveFileDialog guardar = new SaveFileDialog
+            {
+                Filter = "Archivo CSV (*.csv)|*.csv",
+                FileName = "Reporte_SIGEPOSTA.csv",
+                Title = "Guardar reporte"
+            };
+
+            if (guardar.ShowDialog() != DialogResult.OK)
+                return;
+
+            try
+            {
+                using System.IO.StreamWriter escritor =
+                    new System.IO.StreamWriter(guardar.FileName, false,
+                        System.Text.Encoding.UTF8);
+
+                string encabezados = string.Join(";",
+                    dgvReporte.Columns.Cast<DataGridViewColumn>()
+                    .Select(c => EscaparCSV(c.HeaderText)));
+
+                escritor.WriteLine(encabezados);
+
+                foreach (DataGridViewRow fila in dgvReporte.Rows)
+                {
+                    if (fila.IsNewRow)
+                        continue;
+
+                    string valores = string.Join(";",
+                        fila.Cells.Cast<DataGridViewCell>()
+                        .Select(c => EscaparCSV(c.Value?.ToString() ?? "")));
+
+                    escritor.WriteLine(valores);
+                }
+
+                MessageBox.Show("Reporte exportado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al exportar: " + ex.Message);
+            }
+        }
+
+        private string EscaparCSV(string valor)
+        {
+            return "\"" + valor.Replace("\"", "\"\"") + "\"";
+        }
+
+        private void Limpiar()
+        {
+            cmbReporte.SelectedIndex = 0;
+            dtpDesde.Value = DateTime.Today;
+            dtpHasta.Value = DateTime.Today;
+            dgvReporte.DataSource = null;
+            lblResumen.Text = "Sin información para mostrar.";
+        }
+
+        private void Etiqueta(Control padre, string texto, int x, int y)
+        {
+            padre.Controls.Add(new Label
+            {
+                Text = texto,
+                Location = new Point(x, y),
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9)
+            });
+        }
+
+        private Button Boton(string texto, int x, int y, Color color)
+        {
+            return new Button
+            {
+                Text = texto,
+                Location = new Point(x, y),
+                Size = new Size(150, 35),
+                BackColor = color,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+        }
+    }
+}

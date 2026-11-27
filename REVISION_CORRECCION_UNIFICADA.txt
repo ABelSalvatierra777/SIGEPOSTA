@@ -1,0 +1,4680 @@
+﻿REVISION DE DISENO SIGEPOSTA
+
+
+========================================
+ARCHIVO: FormPacientes.cs
+========================================
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormPacientes : Form
+    {
+        private readonly BindingList<PacienteVista> pacientes = new();
+
+        private CampoInventario txtDni = new();
+        private CampoInventario txtNombres = new();
+        private CampoInventario txtApellidos = new();
+        private CampoInventario txtTelefono = new();
+        private CampoInventario txtDireccion = new();
+
+        private DateTimePicker dtpNacimiento = new();
+        private DataGridView dgvPacientes = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormPacientes()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Gestión de pacientes";
+            Size = new Size(1200, 850);
+            MinimumSize = new Size(1000, 700);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = InventarioEstilo.Fondo;
+            Font = new Font("Segoe UI", 10F);
+            DoubleBuffered = true;
+
+            // ENCABEZADO
+            Panel encabezado = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 110,
+                BackColor = InventarioEstilo.VerdeOscuro,
+                Padding = new Padding(30, 12, 30, 12)
+            };
+
+            TableLayoutPanel contenidoEncabezado = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = InventarioEstilo.VerdeOscuro,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+
+            contenidoEncabezado.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            contenidoEncabezado.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 58));
+
+            contenidoEncabezado.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 42));
+
+            Label titulo = new()
+            {
+                Text = "GESTIÓN DE PACIENTES",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+                TextAlign = ContentAlignment.BottomLeft,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0)
+            };
+
+            Label subtitulo = new()
+            {
+                Text = "Registro, consulta y administración de pacientes",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(220, 235, 225),
+                Font = new Font("Segoe UI", 10F),
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.Transparent,
+                Margin = new Padding(2, 0, 0, 0)
+            };
+
+            contenidoEncabezado.Controls.Add(titulo, 0, 0);
+            contenidoEncabezado.Controls.Add(subtitulo, 0, 1);
+            encabezado.Controls.Add(contenidoEncabezado);
+
+            // CONTENIDO PRINCIPAL
+            Panel contenido = new()
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 40, 28, 20),
+                BackColor = InventarioEstilo.Fondo
+            };
+
+            Controls.Add(contenido);
+            Controls.Add(encabezado);
+
+            TableLayoutPanel columna = new()
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = InventarioEstilo.Fondo,
+                Padding = new Padding(0)
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            for (int i = 0; i < 3; i++)
+                columna.RowStyles.Add(
+                    new RowStyle(SizeType.AutoSize));
+
+            contenido.Controls.Add(columna);
+
+            // TARJETA DE DATOS
+            TarjetaInventario tarjetaFormulario = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 255,
+                Margin = new Padding(0, 0, 0, 15)
+            };
+
+            columna.Controls.Add(tarjetaFormulario, 0, 0);
+
+            TableLayoutPanel distribucion = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Padding = new Padding(20, 12, 20, 15),
+                BackColor = Color.White
+            };
+
+            distribucion.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            distribucion.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 48));
+
+            distribucion.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            tarjetaFormulario.Controls.Add(distribucion);
+
+            Label tituloFormulario = new()
+            {
+                Text = "Información del paciente",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = InventarioEstilo.VerdeOscuro,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.White,
+                Margin = new Padding(0)
+            };
+
+            distribucion.Controls.Add(tituloFormulario, 0, 0);
+
+            TableLayoutPanel rejilla = CrearRejilla();
+            distribucion.Controls.Add(rejilla, 0, 1);
+
+            // CAMPOS
+            txtDni = NuevoCampo();
+            txtNombres = NuevoCampo();
+            txtApellidos = NuevoCampo();
+            txtTelefono = NuevoCampo();
+            txtDireccion = NuevoCampo();
+            dtpNacimiento = NuevoFecha();
+
+            AgregarPar(rejilla, 0, 0, "DNI:", txtDni);
+            AgregarPar(rejilla, 0, 2, "Nombres:", txtNombres);
+            AgregarPar(rejilla, 0, 4, "Apellidos:", txtApellidos);
+
+            AgregarPar(rejilla, 1, 0, "Nacimiento:", dtpNacimiento);
+            AgregarPar(rejilla, 1, 2, "Teléfono:", txtTelefono);
+            AgregarPar(rejilla, 1, 4, "Dirección:", txtDireccion);
+
+            // BOTONES
+            Panel panelBotones = new()
+            {
+                Dock = DockStyle.Fill,
+                BackColor = InventarioEstilo.Fondo,
+                Padding = new Padding(0, 8, 0, 8)
+            };
+
+            FlowLayoutPanel botones = new()
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Anchor = AnchorStyles.None,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Padding = new Padding(10),
+                Margin = new Padding(0),
+                BackColor = InventarioEstilo.Fondo
+            };
+
+            BotonInventario btnRegistrar =
+                NuevoBoton("REGISTRAR", TipoBoton.Primario);
+            btnRegistrar.Click += (s, e) => RegistrarPaciente();
+
+            BotonInventario btnActualizar =
+                NuevoBoton("ACTUALIZAR", TipoBoton.Secundario);
+            btnActualizar.Click += (s, e) => ActualizarPaciente();
+
+            BotonInventario btnEliminar =
+                NuevoBoton("ELIMINAR", TipoBoton.Peligro);
+            btnEliminar.Click += (s, e) => EliminarPaciente();
+
+            BotonInventario btnLimpiar =
+                NuevoBoton("LIMPIAR", TipoBoton.Secundario);
+            btnLimpiar.Click += (s, e) => LimpiarFormulario();
+
+            botones.Controls.AddRange(new Control[]
+            {
+                btnRegistrar,
+                btnActualizar,
+                btnEliminar,
+                btnLimpiar
+            });
+
+            panelBotones.Controls.Add(botones);
+
+            panelBotones.Resize += (s, e) =>
+            {
+                botones.Location = new Point(
+                    Math.Max(0, (panelBotones.ClientSize.Width - botones.Width) / 2),
+                    Math.Max(0, (panelBotones.ClientSize.Height - botones.Height) / 2));
+            };
+
+            columna.Controls.Add(panelBotones, 0, 1);
+
+            // TARJETA DE LISTADO
+            TarjetaInventario tarjetaTabla = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 370,
+                Margin = new Padding(0, 0, 0, 15)
+            };
+
+            columna.Controls.Add(tarjetaTabla, 0, 2);
+
+            TableLayoutPanel distribucionTabla = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Padding = new Padding(20, 12, 20, 15),
+                BackColor = Color.White
+            };
+
+            distribucionTabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            distribucionTabla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 48));
+
+            distribucionTabla.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            tarjetaTabla.Controls.Add(distribucionTabla);
+
+            Label tituloTabla = new()
+            {
+                Text = "Listado de pacientes registrados",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = InventarioEstilo.VerdeOscuro,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.White,
+                Margin = new Padding(0)
+            };
+
+            distribucionTabla.Controls.Add(tituloTabla, 0, 0);
+
+            dgvPacientes = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                BorderStyle = BorderStyle.None,
+                Margin = new Padding(0)
+            };
+
+            dgvPacientes.SelectionChanged +=
+                (s, e) => SeleccionarPaciente();
+
+            distribucionTabla.Controls.Add(dgvPacientes, 0, 1);
+        }
+
+        private TableLayoutPanel CrearRejilla()
+        {
+            TableLayoutPanel tabla = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 2,
+                BackColor = Color.White,
+                Padding = new Padding(5, 5, 5, 0),
+                GrowStyle = TableLayoutPanelGrowStyle.FixedSize
+            };
+
+            tabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 115));
+            tabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 33.33F));
+            tabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 110));
+            tabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 33.33F));
+            tabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 115));
+            tabla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 33.33F));
+
+            tabla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 58));
+            tabla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 58));
+
+            return tabla;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel tabla,
+            int fila,
+            int columna,
+            string texto,
+            Control campo)
+        {
+            tabla.Controls.Add(
+                NuevaEtiqueta(texto), columna, fila);
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(3, 5, 12, 5);
+
+            tabla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private Label NuevaEtiqueta(string texto)
+        {
+            return new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = InventarioEstilo.Texto,
+                Font = new Font("Segoe UI Semibold", 9.5F),
+                BackColor = Color.White,
+                Margin = new Padding(3, 10, 3, 3)
+            };
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario();
+        }
+
+        private DateTimePicker NuevoFecha()
+        {
+            return new DateTimePicker
+            {
+                Dock = DockStyle.Fill,
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "dd/MM/yyyy",
+                MaxDate = DateTime.Today,
+                Value = DateTime.Today,
+                Font = new Font("Segoe UI", 10F),
+                Margin = new Padding(3, 5, 12, 5),
+                CalendarMonthBackground = Color.White,
+                CalendarTitleBackColor = InventarioEstilo.VerdeOscuro,
+                CalendarTitleForeColor = Color.White
+            };
+        }
+
+        private BotonInventario NuevoBoton(
+            string texto,
+            TipoBoton tipo)
+        {
+            return new BotonInventario(texto, tipo)
+            {
+                Size = new Size(155, 46),
+                Margin = new Padding(8, 0, 8, 5)
+            };
+        }
+
+        private void AplicarEstilos()
+        {
+            dgvPacientes.EnableHeadersVisualStyles = false;
+            dgvPacientes.BackgroundColor = Color.White;
+            dgvPacientes.BorderStyle = BorderStyle.None;
+            dgvPacientes.GridColor = InventarioEstilo.Borde;
+            dgvPacientes.RowHeadersVisible = false;
+
+            dgvPacientes.ColumnHeadersHeight = 44;
+            dgvPacientes.ColumnHeadersHeightSizeMode =
+                DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            dgvPacientes.ColumnHeadersDefaultCellStyle =
+                new DataGridViewCellStyle
+                {
+                    BackColor = InventarioEstilo.VerdeOscuro,
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                    SelectionBackColor = InventarioEstilo.VerdeOscuro,
+                    SelectionForeColor = Color.White,
+                    Padding = new Padding(8, 0, 0, 0)
+                };
+
+            dgvPacientes.DefaultCellStyle =
+                new DataGridViewCellStyle
+                {
+                    BackColor = Color.White,
+                    ForeColor = InventarioEstilo.Texto,
+                    Font = new Font("Segoe UI", 9.5F),
+                    SelectionBackColor = Color.FromArgb(225, 240, 229),
+                    SelectionForeColor = InventarioEstilo.Texto,
+                    Padding = new Padding(8, 0, 0, 0)
+                };
+
+            dgvPacientes.AlternatingRowsDefaultCellStyle =
+                new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(247, 250, 248),
+                    ForeColor = InventarioEstilo.Texto,
+                    SelectionBackColor = Color.FromArgb(225, 240, 229),
+                    SelectionForeColor = InventarioEstilo.Texto,
+                    Font = new Font("Segoe UI", 9.5F)
+                };
+
+            dgvPacientes.RowTemplate.Height = 38;
+        }
+
+        private void ConfigurarTabla()
+        {
+            dgvPacientes.AutoGenerateColumns = false;
+
+            dgvPacientes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Dni",
+                HeaderText = "DNI"
+            });
+
+            dgvPacientes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Nombres",
+                HeaderText = "Nombres"
+            });
+
+            dgvPacientes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Apellidos",
+                HeaderText = "Apellidos"
+            });
+
+            dgvPacientes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "FechaNacimiento",
+                HeaderText = "Nacimiento",
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    Format = "dd/MM/yyyy"
+                }
+            });
+
+            dgvPacientes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Telefono",
+                HeaderText = "Teléfono"
+            });
+
+            dgvPacientes.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                DataPropertyName = "Direccion",
+                HeaderText = "Dirección"
+            });
+
+            dgvPacientes.DataSource = pacientes;
+        }
+
+        private void RegistrarPaciente()
+        {
+            if (!ValidarDatos())
+                return;
+
+            if (pacientes.Any(p => p.Dni == txtDni.Text.Trim()))
+            {
+                MessageBox.Show("Ya existe un paciente con ese DNI.");
+                return;
+            }
+
+            pacientes.Add(ObtenerDatosFormulario());
+
+            MessageBox.Show("Paciente registrado correctamente.");
+            LimpiarFormulario();
+        }
+
+        private void ActualizarPaciente()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= pacientes.Count)
+            {
+                MessageBox.Show("Seleccione un paciente de la tabla.");
+                return;
+            }
+
+            if (!ValidarDatos())
+                return;
+
+            string dni = txtDni.Text.Trim();
+
+            if (pacientes.Any(p =>
+                p.Dni == dni && p != pacientes[indiceSeleccionado]))
+            {
+                MessageBox.Show("El DNI ya pertenece a otro paciente.");
+                return;
+            }
+
+            PacienteVista actualizado = ObtenerDatosFormulario();
+            PacienteVista anterior = pacientes[indiceSeleccionado];
+
+            anterior.Dni = actualizado.Dni;
+            anterior.Nombres = actualizado.Nombres;
+            anterior.Apellidos = actualizado.Apellidos;
+            anterior.FechaNacimiento = actualizado.FechaNacimiento;
+            anterior.Telefono = actualizado.Telefono;
+            anterior.Direccion = actualizado.Direccion;
+
+            dgvPacientes.Refresh();
+
+            MessageBox.Show("Paciente actualizado correctamente.");
+            LimpiarFormulario();
+        }
+
+        private void EliminarPaciente()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= pacientes.Count)
+            {
+                MessageBox.Show("Seleccione un paciente de la tabla.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Está seguro de eliminar este paciente?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (respuesta == DialogResult.Yes)
+            {
+                pacientes.RemoveAt(indiceSeleccionado);
+                MessageBox.Show("Paciente eliminado.");
+                LimpiarFormulario();
+            }
+        }
+
+        private void SeleccionarPaciente()
+        {
+            if (dgvPacientes.CurrentRow == null)
+                return;
+
+            if (dgvPacientes.CurrentRow.DataBoundItem
+                is not PacienteVista paciente)
+                return;
+
+            indiceSeleccionado = pacientes.IndexOf(paciente);
+
+            txtDni.Text = paciente.Dni;
+            txtNombres.Text = paciente.Nombres;
+            txtApellidos.Text = paciente.Apellidos;
+            dtpNacimiento.Value = paciente.FechaNacimiento;
+            txtTelefono.Text = paciente.Telefono;
+            txtDireccion.Text = paciente.Direccion;
+        }
+
+        private bool ValidarDatos()
+        {
+            if (string.IsNullOrWhiteSpace(txtDni.Text) ||
+                string.IsNullOrWhiteSpace(txtNombres.Text) ||
+                string.IsNullOrWhiteSpace(txtApellidos.Text))
+            {
+                MessageBox.Show(
+                    "Complete el DNI, los nombres y los apellidos.");
+                return false;
+            }
+
+            if (txtDni.Text.Trim().Length != 8 ||
+                !txtDni.Text.Trim().All(char.IsDigit))
+            {
+                MessageBox.Show(
+                    "El DNI debe contener exactamente 8 números.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private PacienteVista ObtenerDatosFormulario()
+        {
+            return new PacienteVista
+            {
+                Dni = txtDni.Text.Trim(),
+                Nombres = txtNombres.Text.Trim(),
+                Apellidos = txtApellidos.Text.Trim(),
+                FechaNacimiento = dtpNacimiento.Value.Date,
+                Telefono = txtTelefono.Text.Trim(),
+                Direccion = txtDireccion.Text.Trim()
+            };
+        }
+
+        private void LimpiarFormulario()
+        {
+            indiceSeleccionado = -1;
+
+            txtDni.Clear();
+            txtNombres.Clear();
+            txtApellidos.Clear();
+            txtTelefono.Clear();
+            txtDireccion.Clear();
+
+            dtpNacimiento.Value = DateTime.Today;
+            dgvPacientes.ClearSelection();
+        }
+
+        private class PacienteVista
+        {
+            public string Dni { get; set; } = "";
+            public string Nombres { get; set; } = "";
+            public string Apellidos { get; set; } = "";
+            public DateTime FechaNacimiento { get; set; }
+            public string Telefono { get; set; } = "";
+            public string Direccion { get; set; } = "";
+        }
+    }
+}
+
+
+========================================
+ARCHIVO: FormConfiguracion.cs
+========================================
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormConfiguracion : Form
+    {
+        private CampoInventario txtNombre = new();
+        private CampoInventario txtCodigo = new();
+        private CampoInventario txtDireccion = new();
+        private CampoInventario txtTelefono = new();
+        private CampoInventario txtCorreo = new();
+        private CampoInventario txtResponsable = new();
+
+        private ComboBox cmbCategoria = new();
+        private Label lblEstado = new();
+
+        public FormConfiguracion()
+        {
+            ConstruirFormulario();
+            AplicarEstilos();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Configuración institucional";
+            Size = new Size(1200, 780);
+            MinimumSize = new Size(950, 680);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "CONFIGURACIÓN INSTITUCIONAL",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Administración de la información general del establecimiento de salud",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 25, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel columna = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0)
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            columna.Controls.Add(CrearGrupoDatos());
+            columna.Controls.Add(CrearBotonera());
+
+            cuerpo.Controls.Add(columna);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        private GroupBox CrearGrupoDatos()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Datos del establecimiento de salud",
+                Dock = DockStyle.Top,
+                Height = 390,
+                Margin = new Padding(0, 0, 0, 15),
+                Padding = new Padding(18, 15, 18, 15),
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = TemaSIGEPOSTA.VerdeOscuro,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 4,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(8)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 155));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 55));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 145));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 45));
+
+            for (int i = 0; i < 4; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 72));
+            }
+
+            txtNombre = NuevoCampo();
+            txtNombre.Text = "Posta de Salud de Mollepata";
+
+            txtCodigo = NuevoCampo();
+            txtDireccion = NuevoCampo();
+            txtTelefono = NuevoCampo();
+            txtCorreo = NuevoCampo();
+            txtResponsable = NuevoCampo();
+
+            cmbCategoria = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+
+            cmbCategoria.Items.AddRange(new object[]
+            {
+                "I-1",
+                "I-2",
+                "I-3",
+                "I-4"
+            });
+
+            cmbCategoria.SelectedIndex = 0;
+
+            AgregarPar(rejilla, "Nombre:", txtNombre, 0, 0);
+            AgregarPar(rejilla, "Código:", txtCodigo, 2, 0);
+
+            AgregarPar(rejilla, "Dirección:", txtDireccion, 0, 1);
+            AgregarPar(rejilla, "Teléfono:", txtTelefono, 2, 1);
+
+            AgregarPar(rejilla, "Correo institucional:", txtCorreo, 0, 2);
+            AgregarPar(rejilla, "Responsable:", txtResponsable, 2, 2);
+
+            AgregarPar(rejilla, "Categoría:", cmbCategoria, 0, 3);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        private Control CrearBotonera()
+        {
+            Panel contenedor = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 105,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Margin = new Padding(0)
+            };
+
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+
+            Button btnGuardar = NuevoBoton(
+                "GUARDAR CONFIGURACIÓN", TipoBoton.Primario);
+
+            btnGuardar.Width = 230;
+            btnGuardar.Click += (s, e) => GuardarConfiguracion();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+
+            btnLimpiar.Width = 140;
+            btnLimpiar.Click += (s, e) => LimpiarCampos();
+
+            fila.Controls.Add(btnGuardar);
+            fila.Controls.Add(btnLimpiar);
+
+            contenedor.Controls.Add(fila);
+
+            Action centrar = () =>
+            {
+                fila.Left = Math.Max(0, (contenedor.ClientSize.Width - fila.Width) / 2);
+                fila.Top = 8;
+            };
+
+            contenedor.SizeChanged += (s, e) => centrar();
+            fila.SizeChanged += (s, e) => centrar();
+
+            lblEstado = new Label
+            {
+                Text = "Configuración pendiente de guardar.",
+                Dock = DockStyle.Bottom,
+                Height = 35,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = TemaSIGEPOSTA.TextoSecundario,
+                Font = new Font("Segoe UI", 10F)
+            };
+
+            contenedor.Controls.Add(lblEstado);
+            centrar();
+
+            return contenedor;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = new Label
+            {
+                Text = texto,
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 0, 8, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 12, 18, 12);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario
+            {
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(8, 0, 8, 0),
+                Height = 38,
+                Cursor = Cursors.Hand
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        private void AplicarEstilos()
+        {
+            foreach (GroupBox grupo in TodosLosControles<GroupBox>(this))
+            {
+                grupo.Font = new Font("Segoe UI", 10F);
+                grupo.ForeColor = TemaSIGEPOSTA.VerdeOscuro;
+                grupo.BackColor = TemaSIGEPOSTA.Blanco;
+            }
+
+            TemaSIGEPOSTA.EstilizarComboBox(cmbCategoria);
+        }
+
+        private static System.Collections.Generic.IEnumerable<T>
+            TodosLosControles<T>(Control raiz) where T : Control
+        {
+            foreach (Control control in raiz.Controls)
+            {
+                if (control is T tipado)
+                    yield return tipado;
+
+                foreach (T hijo in TodosLosControles<T>(control))
+                    yield return hijo;
+            }
+        }
+
+        private void GuardarConfiguracion()
+        {
+            if (string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtDireccion.Text))
+            {
+                MessageBox.Show(
+                    "Ingrese como mínimo el nombre y la dirección.",
+                    "Validación",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+
+                return;
+            }
+
+            MessageBox.Show(
+                "Los datos fueron validados. Su almacenamiento permanente se implementará al conectar SQL Server.",
+                "SIGEPOSTA",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+
+            lblEstado.Text =
+                "Datos validados; pendientes de conexión con SQL Server.";
+        }
+
+        private void LimpiarCampos()
+        {
+            txtCodigo.Clear();
+            txtDireccion.Clear();
+            txtTelefono.Clear();
+            txtCorreo.Clear();
+            txtResponsable.Clear();
+
+            cmbCategoria.SelectedIndex = 0;
+
+            lblEstado.Text = "Formulario limpiado.";
+        }
+    }
+}
+
+
+
+
+
+========================================
+ARCHIVO: FormDiagnosticos.cs
+========================================
+
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormDiagnosticos : Form
+    {
+        private readonly BindingList<DiagnosticoVista> diagnosticos = new();
+
+        private CampoInventario txtDniPaciente = new();
+        private CampoInventario txtPaciente = new();
+        private CampoInventario txtDniProfesional = new();
+        private CampoInventario txtProfesional = new();
+        private CampoInventario txtCodigo = new();
+        private CampoInventario txtDescripcion = new();
+        private CampoInventario txtObservaciones = new();
+
+        private DateTimePicker dtpFecha = new();
+        private ComboBox cmbTipo = new();
+        private ComboBox cmbEstado = new();
+
+        private DataGridView dgvDiagnosticos = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormDiagnosticos()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+        }
+
+        // ═══════════════════════ INTERFAZ ═══════════════════════
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Gestión de diagnósticos";
+            Size = new Size(1250, 900);
+            MinimumSize = new Size(1100, 800);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            // ENCABEZADO
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "GESTIÓN DE DIAGNÓSTICOS",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Registro, evaluación y seguimiento de diagnósticos clínicos",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            // CUERPO CON DESPLAZAMIENTO
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel columna = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            columna.Controls.Add(CrearGrupoPaciente());
+            columna.Controls.Add(CrearGrupoDiagnostico());
+            columna.Controls.Add(CrearBotonera());
+            columna.Controls.Add(CrearGrupoTabla());
+
+            cuerpo.Controls.Add(columna);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        // ═══════════════════════ GRUPO PACIENTE ═══════════════════════
+
+        private GroupBox CrearGrupoPaciente()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Información del paciente y profesional", 150);
+
+            TableLayoutPanel rejilla = CrearRejilla(6, 2);
+
+            txtDniPaciente = NuevoCampo();
+            txtPaciente = NuevoCampo();
+            txtDniProfesional = NuevoCampo();
+            txtProfesional = NuevoCampo();
+
+            AgregarPar(rejilla, "DNI paciente:", txtDniPaciente, 0, 0);
+            AgregarPar(rejilla, "Paciente:", txtPaciente, 2, 0);
+            AgregarPar(rejilla, "DNI profesional:", txtDniProfesional, 4, 0);
+
+            AgregarPar(rejilla, "Profesional:", txtProfesional, 0, 1);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ GRUPO DIAGNÓSTICO ═══════════════════════
+
+        private GroupBox CrearGrupoDiagnostico()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Información del diagnóstico clínico", 310);
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 4,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 30));
+
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 48));
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 85));
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 85));
+
+            txtCodigo = NuevoCampo();
+
+            dtpFecha = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                MaxDate = DateTime.Today,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            cmbTipo = NuevoCombo(
+                "Presuntivo",
+                "Definitivo",
+                "Control");
+
+            cmbEstado = NuevoCombo(
+                "Activo",
+                "Resuelto",
+                "En seguimiento");
+
+            txtDescripcion = NuevaArea();
+            txtObservaciones = NuevaArea();
+
+            // FILA 1
+            AgregarPar(rejilla, "Código CIE-10:", txtCodigo, 0, 0);
+            AgregarPar(rejilla, "Fecha:", dtpFecha, 2, 0);
+
+            // FILA 2
+            AgregarPar(rejilla, "Tipo:", cmbTipo, 0, 1);
+            AgregarPar(rejilla, "Estado:", cmbEstado, 2, 1);
+
+            // FILA 3
+            Label lblDescripcion = NuevaEtiqueta("Descripción:");
+            rejilla.Controls.Add(lblDescripcion, 0, 2);
+            rejilla.Controls.Add(txtDescripcion, 1, 2);
+            rejilla.SetColumnSpan(txtDescripcion, 5);
+
+            // FILA 4
+            Label lblObservaciones = NuevaEtiqueta("Observaciones:");
+            rejilla.Controls.Add(lblObservaciones, 0, 3);
+            rejilla.Controls.Add(txtObservaciones, 1, 3);
+            rejilla.SetColumnSpan(txtObservaciones, 5);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ BOTONERA ═══════════════════════
+
+        private Control CrearBotonera()
+        {
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 58,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0, 8, 0, 0),
+                Margin = new Padding(0, 0, 0, 14)
+            };
+
+            Button btnRegistrar = NuevoBoton(
+                "REGISTRAR", TipoBoton.Primario);
+
+            btnRegistrar.Click += (s, e) => Registrar();
+
+            Button btnActualizar = NuevoBoton(
+                "ACTUALIZAR", TipoBoton.Primario);
+
+            btnActualizar.Click += (s, e) => Actualizar();
+
+            Button btnEliminar = NuevoBoton(
+                "ELIMINAR", TipoBoton.Peligro);
+
+            btnEliminar.Click += (s, e) => Eliminar();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+
+            btnLimpiar.Click += (s, e) => Limpiar();
+
+            fila.Controls.Add(btnRegistrar);
+            fila.Controls.Add(btnActualizar);
+            fila.Controls.Add(btnEliminar);
+            fila.Controls.Add(btnLimpiar);
+
+            return fila;
+        }
+
+        // ═══════════════════════ TABLA ═══════════════════════
+
+        private GroupBox CrearGrupoTabla()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Diagnósticos registrados", 260);
+
+            dgvDiagnosticos = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoGenerateColumns = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                Margin = new Padding(5)
+            };
+
+            dgvDiagnosticos.SelectionChanged +=
+                (s, e) => Seleccionar();
+
+            grupo.Controls.Add(dgvDiagnosticos);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ AYUDAS DE DISEÑO ═══════════════════════
+
+        private GroupBox CrearGrupo(string titulo, int alto)
+        {
+            return new GroupBox
+            {
+                Text = titulo,
+                Dock = DockStyle.Top,
+                Height = alto,
+                Margin = new Padding(0, 0, 0, 14),
+                Padding = new Padding(16, 10, 16, 10)
+            };
+        }
+
+        private TableLayoutPanel CrearRejilla(int columnas, int filas)
+        {
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = columnas,
+                RowCount = filas,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            for (int i = 0; i < columnas; i++)
+            {
+                if (i % 2 == 0)
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(SizeType.AutoSize));
+                else
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(
+                            SizeType.Percent,
+                            100f / (columnas / 2)));
+            }
+
+            for (int i = 0; i < filas; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 46));
+            }
+
+            return rejilla;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = NuevaEtiqueta(texto);
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 6, 24, 6);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private Label NuevaEtiqueta(string texto)
+        {
+            return new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 0, 10, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+        }
+
+        private CampoInventario NuevaArea()
+        {
+            CampoInventario campo = new CampoInventario();
+            campo.ConfigurarMultilinea(true, ScrollBars.Vertical);
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 5, 15, 8);
+            return campo;
+        }
+        private ComboBox NuevoCombo(params string[] opciones)
+        {
+            ComboBox combo = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            combo.Items.AddRange(opciones);
+            combo.SelectedIndex = 0;
+
+            return combo;
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(0, 0, 12, 0)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        // ═══════════════════════ CONFIGURACIÓN TABLA ═══════════════════════
+
+        private void ConfigurarTabla()
+        {
+            TemaSIGEPOSTA.EstilizarTabla(dgvDiagnosticos);
+
+            Columna("DniPaciente", "DNI paciente");
+            Columna("Paciente", "Paciente");
+            Columna("Codigo", "Código CIE-10");
+            Columna("Fecha", "Fecha");
+            Columna("Tipo", "Tipo");
+            Columna("Estado", "Estado");
+
+            dgvDiagnosticos.Columns["Fecha"]!.DefaultCellStyle.Format =
+                "dd/MM/yyyy";
+
+            dgvDiagnosticos.DataSource = diagnosticos;
+        }
+
+        private void Columna(string propiedad, string titulo)
+        {
+            dgvDiagnosticos.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = propiedad,
+                DataPropertyName = propiedad,
+                HeaderText = titulo
+            });
+        }
+
+
+// ═══════════════════════ ESTILOS ═══════════════════════
+
+private void AplicarEstilos()
+{
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = TemaSIGEPOSTA.Fuente;
+
+    AplicarEstilosRecursivos(this);
+
+    // Fecha
+    TemaSIGEPOSTA.EstilizarFecha(dtpFecha);
+
+    // Combos
+    TemaSIGEPOSTA.EstilizarComboBox(cmbTipo);
+    TemaSIGEPOSTA.EstilizarComboBox(cmbEstado);
+
+    // Tabla de diagnósticos
+    TemaSIGEPOSTA.EstilizarTabla(dgvDiagnosticos);
+}
+
+private void AplicarEstilosRecursivos(Control control)
+{
+    if (control is GroupBox grupo)
+    {
+        TemaSIGEPOSTA.EstilizarGrupo(grupo);
+    }
+    else if (control is TextBox caja)
+    {
+        if (caja.Multiline)
+        {
+            caja.BackColor = TemaSIGEPOSTA.FondoCampo;
+            caja.ForeColor = TemaSIGEPOSTA.Texto;
+            caja.Font = TemaSIGEPOSTA.FuenteCampo;
+            caja.BorderStyle = BorderStyle.FixedSingle;
+        }
+        else
+        {
+            TemaSIGEPOSTA.EstilizarTextBox(caja);
+        }
+    }
+    else if (control is ComboBox combo)
+    {
+        TemaSIGEPOSTA.EstilizarComboBox(combo);
+    }
+    else if (control is Label etiqueta)
+    {
+        TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+    }
+    else if (control is Button boton)
+    {
+        TipoBoton tipo = boton.Text.Contains("ELIMINAR")
+            ? TipoBoton.Peligro
+            : boton.Text.Contains("LIMPIAR")
+                ? TipoBoton.Secundario
+                : TipoBoton.Primario;
+
+        TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+    }
+
+    foreach (Control hijo in control.Controls)
+    {
+        AplicarEstilosRecursivos(hijo);
+    }
+}
+
+
+        // ═══════════════════════ LÓGICA ═══════════════════════
+
+        private void Registrar()
+        {
+            if (!Validar())
+                return;
+
+            diagnosticos.Add(ObtenerDatos());
+
+            MessageBox.Show("Diagnóstico registrado correctamente.");
+            Limpiar();
+        }
+
+        private void Actualizar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= diagnosticos.Count)
+            {
+                MessageBox.Show("Seleccione un diagnóstico.");
+                return;
+            }
+
+            if (!Validar())
+                return;
+
+            DiagnosticoVista nuevo = ObtenerDatos();
+            DiagnosticoVista anterior = diagnosticos[indiceSeleccionado];
+
+            anterior.DniPaciente = nuevo.DniPaciente;
+            anterior.Paciente = nuevo.Paciente;
+            anterior.DniProfesional = nuevo.DniProfesional;
+            anterior.Profesional = nuevo.Profesional;
+            anterior.Codigo = nuevo.Codigo;
+            anterior.Fecha = nuevo.Fecha;
+            anterior.Tipo = nuevo.Tipo;
+            anterior.Estado = nuevo.Estado;
+            anterior.Descripcion = nuevo.Descripcion;
+            anterior.Observaciones = nuevo.Observaciones;
+
+            dgvDiagnosticos.Refresh();
+
+            MessageBox.Show("Diagnóstico actualizado correctamente.");
+            Limpiar();
+        }
+
+        private void Eliminar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= diagnosticos.Count)
+            {
+                MessageBox.Show("Seleccione un diagnóstico.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Desea eliminar este diagnóstico?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                diagnosticos.RemoveAt(indiceSeleccionado);
+
+                MessageBox.Show("Diagnóstico eliminado.");
+                Limpiar();
+            }
+        }
+
+        private void Seleccionar()
+        {
+            if (dgvDiagnosticos.CurrentRow?.DataBoundItem
+                is not DiagnosticoVista d)
+                return;
+
+            indiceSeleccionado = diagnosticos.IndexOf(d);
+
+            txtDniPaciente.Text = d.DniPaciente;
+            txtPaciente.Text = d.Paciente;
+            txtDniProfesional.Text = d.DniProfesional;
+            txtProfesional.Text = d.Profesional;
+            txtCodigo.Text = d.Codigo;
+            dtpFecha.Value = d.Fecha;
+            cmbTipo.SelectedItem = d.Tipo;
+            cmbEstado.SelectedItem = d.Estado;
+            txtDescripcion.Text = d.Descripcion;
+            txtObservaciones.Text = d.Observaciones;
+        }
+
+        private bool Validar()
+        {
+            if (string.IsNullOrWhiteSpace(txtDniPaciente.Text) ||
+                string.IsNullOrWhiteSpace(txtPaciente.Text) ||
+                string.IsNullOrWhiteSpace(txtDniProfesional.Text) ||
+                string.IsNullOrWhiteSpace(txtProfesional.Text) ||
+                string.IsNullOrWhiteSpace(txtCodigo.Text) ||
+                string.IsNullOrWhiteSpace(txtDescripcion.Text))
+            {
+                MessageBox.Show("Complete los campos obligatorios.");
+                return false;
+            }
+
+            if (!DniValido(txtDniPaciente.Text) ||
+                !DniValido(txtDniProfesional.Text))
+            {
+                MessageBox.Show(
+                    "Los DNI deben contener exactamente 8 números.");
+
+                return false;
+            }
+
+            if (cmbTipo.SelectedItem == null ||
+                cmbEstado.SelectedItem == null)
+            {
+                MessageBox.Show(
+                    "Seleccione el tipo y estado del diagnóstico.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool DniValido(string dni)
+        {
+            return dni.Trim().Length == 8 &&
+                   dni.Trim().All(char.IsDigit);
+        }
+
+        private DiagnosticoVista ObtenerDatos()
+        {
+            return new DiagnosticoVista
+            {
+                DniPaciente = txtDniPaciente.Text.Trim(),
+                Paciente = txtPaciente.Text.Trim(),
+                DniProfesional = txtDniProfesional.Text.Trim(),
+                Profesional = txtProfesional.Text.Trim(),
+                Codigo = txtCodigo.Text.Trim(),
+                Fecha = dtpFecha.Value.Date,
+                Tipo = cmbTipo.Text,
+                Estado = cmbEstado.Text,
+                Descripcion = txtDescripcion.Text.Trim(),
+                Observaciones = txtObservaciones.Text.Trim()
+            };
+        }
+
+        private void Limpiar()
+        {
+            indiceSeleccionado = -1;
+
+            txtDniPaciente.Clear();
+            txtPaciente.Clear();
+            txtDniProfesional.Clear();
+            txtProfesional.Clear();
+            txtCodigo.Clear();
+            txtDescripcion.Clear();
+            txtObservaciones.Clear();
+
+            dtpFecha.Value = DateTime.Today;
+            cmbTipo.SelectedIndex = 0;
+            cmbEstado.SelectedIndex = 0;
+
+            dgvDiagnosticos.ClearSelection();
+        }
+
+        // ═══════════════════════ MODELO ═══════════════════════
+
+        private class DiagnosticoVista
+        {
+            public string DniPaciente { get; set; } = "";
+            public string Paciente { get; set; } = "";
+            public string DniProfesional { get; set; } = "";
+            public string Profesional { get; set; } = "";
+            public string Codigo { get; set; } = "";
+            public DateTime Fecha { get; set; }
+            public string Tipo { get; set; } = "";
+            public string Estado { get; set; } = "";
+            public string Descripcion { get; set; } = "";
+            public string Observaciones { get; set; } = "";
+        }
+    }
+}
+
+
+
+
+
+
+========================================
+ARCHIVO: FormFarmacia.cs
+========================================
+
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormFarmacia : Form
+    {
+        private readonly BindingList<MedicamentoVista> medicamentos = new();
+
+        private CampoInventario txtCodigo = new();
+        private CampoInventario txtNombre = new();
+        private CampoInventario txtPrincipioActivo = new();
+        private CampoInventario txtConcentracion = new();
+        private CampoInventario txtPresentacion = new();
+        private CampoInventario txtLaboratorio = new();
+        private CampoInventario txtStock = new();
+        private CampoInventario txtStockMinimo = new();
+        private CampoInventario txtPrecio = new();
+        private CampoInventario txtObservacion = new();
+
+        private ComboBox cmbCategoria = new();
+        private ComboBox cmbEstado = new();
+
+        private DateTimePicker dtpVencimiento = new();
+
+        private DataGridView dgvMedicamentos = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormFarmacia()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+        }
+
+        // ═══════════════════════ INTERFAZ ═══════════════════════
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Farmacia";
+            Size = new Size(1250, 900);
+            MinimumSize = new Size(1100, 800);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            // ENCABEZADO
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "GESTIÓN DE FARMACIA",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Administración y control del catálogo de medicamentos",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            // CUERPO
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel columna = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            columna.Controls.Add(CrearGrupoMedicamento());
+            columna.Controls.Add(CrearBotonera());
+            columna.Controls.Add(CrearGrupoTabla());
+
+            cuerpo.Controls.Add(columna);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        // ═══════════════════════ GRUPO MEDICAMENTO ═══════════════════════
+
+        private GroupBox CrearGrupoMedicamento()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Información del medicamento", 390);
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 5,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 30));
+
+            for (int i = 0; i < 5; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 52));
+            }
+
+            txtCodigo = NuevoCampo();
+            txtNombre = NuevoCampo();
+            txtPrincipioActivo = NuevoCampo();
+            txtConcentracion = NuevoCampo();
+            txtPresentacion = NuevoCampo();
+            txtLaboratorio = NuevoCampo();
+            txtStock = NuevoCampo();
+            txtStockMinimo = NuevoCampo();
+            txtPrecio = NuevoCampo();
+            txtObservacion = NuevaArea();
+
+            cmbCategoria = NuevoCombo(
+                "Analgésico",
+                "Antibiótico",
+                "Antiinflamatorio",
+                "Antipirético",
+                "Antihistamínico",
+                "Antiséptico",
+                "Otro");
+
+            cmbEstado = NuevoCombo(
+                "Disponible",
+                "Suspendido",
+                "Retirado");
+
+            dtpVencimiento = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            // FILA 1
+            AgregarPar(rejilla, "Código:", txtCodigo, 0, 0);
+            AgregarPar(rejilla, "Nombre:", txtNombre, 2, 0);
+            AgregarPar(rejilla, "Principio activo:", txtPrincipioActivo, 4, 0);
+
+            // FILA 2
+            AgregarPar(rejilla, "Concentración:", txtConcentracion, 0, 1);
+            AgregarPar(rejilla, "Presentación:", txtPresentacion, 2, 1);
+            AgregarPar(rejilla, "Laboratorio:", txtLaboratorio, 4, 1);
+
+            // FILA 3
+            AgregarPar(rejilla, "Categoría:", cmbCategoria, 0, 2);
+            AgregarPar(rejilla, "Stock actual:", txtStock, 2, 2);
+            AgregarPar(rejilla, "Stock mínimo:", txtStockMinimo, 4, 2);
+
+            // FILA 4
+            AgregarPar(rejilla, "Precio unitario:", txtPrecio, 0, 3);
+            AgregarPar(rejilla, "Vencimiento:", dtpVencimiento, 2, 3);
+            AgregarPar(rejilla, "Estado:", cmbEstado, 4, 3);
+
+            // FILA 5
+            Label lblObservacion = NuevaEtiqueta("Observación:");
+            rejilla.Controls.Add(lblObservacion, 0, 4);
+            rejilla.Controls.Add(txtObservacion, 1, 4);
+            rejilla.SetColumnSpan(txtObservacion, 5);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ BOTONERA ═══════════════════════
+
+        private Control CrearBotonera()
+        {
+            Panel contenedor = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 66,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Margin = new Padding(0, 0, 0, 14)
+            };
+
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0, 8, 0, 0)
+            };
+
+            Button btnRegistrar = NuevoBoton(
+                "REGISTRAR", TipoBoton.Primario);
+            btnRegistrar.Click += (s, e) => Registrar();
+
+            Button btnActualizar = NuevoBoton(
+                "ACTUALIZAR", TipoBoton.Primario);
+            btnActualizar.Click += (s, e) => Actualizar();
+
+            Button btnEliminar = NuevoBoton(
+                "ELIMINAR", TipoBoton.Peligro);
+            btnEliminar.Click += (s, e) => Eliminar();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+            btnLimpiar.Click += (s, e) => Limpiar();
+
+            fila.Controls.Add(btnRegistrar);
+            fila.Controls.Add(btnActualizar);
+            fila.Controls.Add(btnEliminar);
+            fila.Controls.Add(btnLimpiar);
+
+            Action centrar = () =>
+            {
+                fila.Left = Math.Max(
+                    0, (contenedor.ClientSize.Width - fila.Width) / 2);
+                fila.Top = 0;
+            };
+
+            contenedor.Controls.Add(fila);
+            contenedor.Resize += (s, e) => centrar();
+            fila.SizeChanged += (s, e) => centrar();
+
+            centrar();
+
+            return contenedor;
+        }
+        // ═══════════════════════ TABLA ═══════════════════════
+
+        private GroupBox CrearGrupoTabla()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Catálogo de medicamentos", 280);
+
+            dgvMedicamentos = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoGenerateColumns = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                Margin = new Padding(5)
+            };
+
+            dgvMedicamentos.SelectionChanged +=
+                (s, e) => Seleccionar();
+
+            grupo.Controls.Add(dgvMedicamentos);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ AYUDAS DE DISEÑO ═══════════════════════
+
+        private GroupBox CrearGrupo(string titulo, int alto)
+        {
+            return new GroupBox
+            {
+                Text = titulo,
+                Dock = DockStyle.Top,
+                Height = alto,
+                Margin = new Padding(0, 0, 0, 14),
+                Padding = new Padding(16, 10, 16, 10)
+            };
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = NuevaEtiqueta(texto);
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 6, 18, 6);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private Label NuevaEtiqueta(string texto)
+        {
+            return new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 0, 10, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+        }
+
+        private CampoInventario NuevaArea()
+        {
+            CampoInventario campo = new CampoInventario();
+            campo.ConfigurarMultilinea(true, ScrollBars.Vertical);
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 5, 15, 8);
+            return campo;
+        }
+        private ComboBox NuevoCombo(params string[] opciones)
+        {
+            ComboBox combo = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            combo.Items.AddRange(opciones);
+            combo.SelectedIndex = 0;
+
+            return combo;
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(0, 0, 12, 0)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        // ═══════════════════════ CONFIGURACIÓN TABLA ═══════════════════════
+
+        private void ConfigurarTabla()
+        {
+            TemaSIGEPOSTA.EstilizarTabla(dgvMedicamentos);
+
+            Columna("Codigo", "Código");
+            Columna("Nombre", "Medicamento");
+            Columna("Concentracion", "Concentración");
+            Columna("Presentacion", "Presentación");
+            Columna("Stock", "Stock");
+            Columna("Vencimiento", "Vencimiento");
+            Columna("Estado", "Estado");
+
+            dgvMedicamentos.Columns["Vencimiento"]!
+                .DefaultCellStyle.Format = "dd/MM/yyyy";
+
+            dgvMedicamentos.DataSource = medicamentos;
+        }
+
+        private void Columna(string propiedad, string titulo)
+        {
+            dgvMedicamentos.Columns.Add(
+                new DataGridViewTextBoxColumn
+                {
+                    Name = propiedad,
+                    DataPropertyName = propiedad,
+                    HeaderText = titulo
+                });
+        }
+
+
+// ═══════════════════════ ESTILOS ═══════════════════════
+
+private void AplicarEstilos()
+{
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = TemaSIGEPOSTA.Fuente;
+
+    AplicarEstilosRecursivos(this);
+
+    // Categoría y estado
+    TemaSIGEPOSTA.EstilizarComboBox(cmbCategoria);
+    TemaSIGEPOSTA.EstilizarComboBox(cmbEstado);
+
+    // Fecha de vencimiento
+    TemaSIGEPOSTA.EstilizarFecha(dtpVencimiento);
+
+    // Tabla de medicamentos
+    TemaSIGEPOSTA.EstilizarTabla(dgvMedicamentos);
+}
+
+private void AplicarEstilosRecursivos(Control control)
+{
+    if (control is GroupBox grupo)
+    {
+        TemaSIGEPOSTA.EstilizarGrupo(grupo);
+    }
+    else if (control is TextBox caja)
+    {
+        if (caja.Multiline)
+        {
+            caja.BackColor = TemaSIGEPOSTA.FondoCampo;
+            caja.ForeColor = TemaSIGEPOSTA.Texto;
+            caja.Font = TemaSIGEPOSTA.FuenteCampo;
+            caja.BorderStyle = BorderStyle.FixedSingle;
+        }
+        else
+        {
+            TemaSIGEPOSTA.EstilizarTextBox(caja);
+        }
+    }
+    else if (control is ComboBox combo)
+    {
+        TemaSIGEPOSTA.EstilizarComboBox(combo);
+    }
+    else if (control is Label etiqueta)
+    {
+        TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+    }
+    else if (control is Button boton)
+    {
+        TipoBoton tipo = boton.Text.Contains("ELIMINAR")
+            ? TipoBoton.Peligro
+            : boton.Text.Contains("LIMPIAR")
+                ? TipoBoton.Secundario
+                : TipoBoton.Primario;
+
+        TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+    }
+
+    foreach (Control hijo in control.Controls)
+    {
+        AplicarEstilosRecursivos(hijo);
+    }
+}
+
+
+        // ═══════════════════════ LÓGICA ═══════════════════════
+
+        private void Registrar()
+        {
+            if (!Validar())
+                return;
+
+            if (medicamentos.Any(m =>
+                m.Codigo.Equals(
+                    txtCodigo.Text.Trim(),
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(
+                    "Ya existe un medicamento con ese código.");
+                return;
+            }
+
+            medicamentos.Add(ObtenerDatos());
+
+            MessageBox.Show("Medicamento registrado correctamente.");
+            Limpiar();
+        }
+
+        private void Actualizar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= medicamentos.Count)
+            {
+                MessageBox.Show("Seleccione un medicamento.");
+                return;
+            }
+
+            if (!Validar())
+                return;
+
+            string codigo = txtCodigo.Text.Trim();
+
+            if (medicamentos.Where((m, i) => i != indiceSeleccionado)
+                .Any(m => m.Codigo.Equals(
+                    codigo,
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                MessageBox.Show(
+                    "El código ya pertenece a otro medicamento.");
+                return;
+            }
+
+            MedicamentoVista nuevo = ObtenerDatos();
+            MedicamentoVista anterior = medicamentos[indiceSeleccionado];
+
+            anterior.Codigo = nuevo.Codigo;
+            anterior.Nombre = nuevo.Nombre;
+            anterior.PrincipioActivo = nuevo.PrincipioActivo;
+            anterior.Concentracion = nuevo.Concentracion;
+            anterior.Presentacion = nuevo.Presentacion;
+            anterior.Laboratorio = nuevo.Laboratorio;
+            anterior.Categoria = nuevo.Categoria;
+            anterior.Stock = nuevo.Stock;
+            anterior.StockMinimo = nuevo.StockMinimo;
+            anterior.Precio = nuevo.Precio;
+            anterior.Vencimiento = nuevo.Vencimiento;
+            anterior.Estado = nuevo.Estado;
+            anterior.Observacion = nuevo.Observacion;
+
+            dgvMedicamentos.Refresh();
+
+            MessageBox.Show("Medicamento actualizado correctamente.");
+            Limpiar();
+        }
+
+        private void Eliminar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= medicamentos.Count)
+            {
+                MessageBox.Show("Seleccione un medicamento.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Desea eliminar este medicamento del catálogo?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                medicamentos.RemoveAt(indiceSeleccionado);
+
+                MessageBox.Show("Medicamento eliminado.");
+                Limpiar();
+            }
+        }
+
+        private void Seleccionar()
+        {
+            if (dgvMedicamentos.CurrentRow?.DataBoundItem
+                is not MedicamentoVista m)
+                return;
+
+            indiceSeleccionado = medicamentos.IndexOf(m);
+
+            txtCodigo.Text = m.Codigo;
+            txtNombre.Text = m.Nombre;
+            txtPrincipioActivo.Text = m.PrincipioActivo;
+            txtConcentracion.Text = m.Concentracion;
+            txtPresentacion.Text = m.Presentacion;
+            txtLaboratorio.Text = m.Laboratorio;
+
+            cmbCategoria.SelectedItem = m.Categoria;
+
+            txtStock.Text = m.Stock.ToString();
+            txtStockMinimo.Text = m.StockMinimo.ToString();
+            txtPrecio.Text = m.Precio.ToString("0.00");
+
+            dtpVencimiento.Value = m.Vencimiento;
+            cmbEstado.SelectedItem = m.Estado;
+            txtObservacion.Text = m.Observacion ?? string.Empty;
+        }
+
+        private bool Validar()
+        {
+            if (string.IsNullOrWhiteSpace(txtCodigo.Text) ||
+                string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtPrincipioActivo.Text) ||
+                string.IsNullOrWhiteSpace(txtConcentracion.Text) ||
+                string.IsNullOrWhiteSpace(txtPresentacion.Text))
+            {
+                MessageBox.Show("Complete los campos obligatorios.");
+                return false;
+            }
+
+            if (!int.TryParse(txtStock.Text, out int stock) || stock < 0)
+            {
+                MessageBox.Show("Ingrese un stock válido.");
+                return false;
+            }
+
+            if (!int.TryParse(txtStockMinimo.Text, out int minimo) ||
+                minimo < 0)
+            {
+                MessageBox.Show("Ingrese un stock mínimo válido.");
+                return false;
+            }
+
+            if (!decimal.TryParse(txtPrecio.Text, out decimal precio) ||
+                precio < 0)
+            {
+                MessageBox.Show("Ingrese un precio válido.");
+                return false;
+            }
+
+            if (cmbCategoria.SelectedItem == null ||
+                cmbEstado.SelectedItem == null)
+            {
+                MessageBox.Show(
+                    "Seleccione una categoría y un estado.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private MedicamentoVista ObtenerDatos()
+        {
+            return new MedicamentoVista
+            {
+                Codigo = txtCodigo.Text.Trim(),
+                Nombre = txtNombre.Text.Trim(),
+                PrincipioActivo = txtPrincipioActivo.Text.Trim(),
+                Concentracion = txtConcentracion.Text.Trim(),
+                Presentacion = txtPresentacion.Text.Trim(),
+                Laboratorio = txtLaboratorio.Text.Trim(),
+                Categoria = cmbCategoria.Text,
+                Stock = int.Parse(txtStock.Text),
+                StockMinimo = int.Parse(txtStockMinimo.Text),
+                Precio = decimal.Parse(txtPrecio.Text),
+                Vencimiento = dtpVencimiento.Value.Date,
+                Estado = cmbEstado.Text,
+                Observacion = txtObservacion.Text.Trim()
+            };
+        }
+
+        private void Limpiar()
+        {
+            indiceSeleccionado = -1;
+
+            txtCodigo.Clear();
+            txtNombre.Clear();
+            txtPrincipioActivo.Clear();
+            txtConcentracion.Clear();
+            txtPresentacion.Clear();
+            txtLaboratorio.Clear();
+            txtStock.Clear();
+            txtStockMinimo.Clear();
+            txtPrecio.Clear();
+            txtObservacion.Clear();
+
+            cmbCategoria.SelectedIndex = 0;
+            cmbEstado.SelectedIndex = 0;
+            dtpVencimiento.Value = DateTime.Today;
+
+            dgvMedicamentos.ClearSelection();
+        }
+
+        // ═══════════════════════ MODELO ═══════════════════════
+
+        private class MedicamentoVista
+        {
+            public string Codigo { get; set; } = "";
+            public string Nombre { get; set; } = "";
+            public string PrincipioActivo { get; set; } = "";
+            public string Concentracion { get; set; } = "";
+            public string Presentacion { get; set; } = "";
+            public string Laboratorio { get; set; } = "";
+            public string Categoria { get; set; } = "";
+            public int Stock { get; set; }
+            public int StockMinimo { get; set; }
+            public decimal Precio { get; set; }
+            public DateTime Vencimiento { get; set; }
+            public string Estado { get; set; } = "";
+            public string Observacion { get; set; } = "";
+        }
+    }
+}
+
+
+
+
+
+
+========================================
+ARCHIVO: FormHistoriaClinica.cs
+========================================
+
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormHistoriaClinica : Form
+    {
+        private readonly BindingList<HistoriaVista> historias = new();
+
+        private CampoInventario txtDni = new();
+        private CampoInventario txtPaciente = new();
+        private CampoInventario txtGrupoSanguineo = new();
+        private CampoInventario txtAlergias = new();
+        private CampoInventario txtAntecedentesPersonales = new();
+        private CampoInventario txtAntecedentesFamiliares = new();
+        private CampoInventario txtObservaciones = new();
+
+        private DateTimePicker dtpFechaRegistro = new();
+        private DataGridView dgvHistorias = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormHistoriaClinica()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+        }
+
+        // ═══════════════════════ INTERFAZ ═══════════════════════
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Historias clínicas";
+            Size = new Size(1250, 900);
+            MinimumSize = new Size(1100, 800);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            // ENCABEZADO
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "GESTIÓN DE HISTORIAS CLÍNICAS",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Registro y consulta de información clínica de los pacientes",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            // CUERPO CON DESPLAZAMIENTO
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel columna = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            columna.Controls.Add(CrearGrupoPaciente());
+            columna.Controls.Add(CrearGrupoAntecedentes());
+            columna.Controls.Add(CrearBotonera());
+            columna.Controls.Add(CrearGrupoTabla());
+
+            cuerpo.Controls.Add(columna);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        // ═══════════════════════ GRUPO PACIENTE ═══════════════════════
+
+        private GroupBox CrearGrupoPaciente()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Identificación del paciente", 115);
+
+            TableLayoutPanel rejilla = CrearRejilla(6, 1);
+
+            txtDni = NuevoCampo();
+            txtPaciente = NuevoCampo();
+            txtGrupoSanguineo = NuevoCampo();
+
+            AgregarPar(rejilla, "DNI:", txtDni, 0, 0);
+            AgregarPar(rejilla, "Paciente:", txtPaciente, 2, 0);
+            AgregarPar(rejilla, "Grupo sanguíneo:", txtGrupoSanguineo, 4, 0);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ GRUPO INFORMACIÓN CLÍNICA ═══════════════════════
+
+        private GroupBox CrearGrupoAntecedentes()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Información clínica y antecedentes médicos", 370);
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 4,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 50));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 50));
+
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 105));
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 105));
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 105));
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 48));
+
+            txtAlergias = NuevaArea();
+            txtAntecedentesPersonales = NuevaArea();
+            txtAntecedentesFamiliares = NuevaArea();
+            txtObservaciones = NuevaArea();
+
+            dtpFechaRegistro = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                MaxDate = DateTime.Today,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            // FILA 1
+            AgregarPar(rejilla, "Alergias:", txtAlergias, 0, 0);
+            AgregarPar(rejilla, "Antecedentes personales:",
+                txtAntecedentesPersonales, 2, 0);
+
+            // FILA 2
+            AgregarPar(rejilla, "Antecedentes familiares:",
+                txtAntecedentesFamiliares, 0, 1);
+            AgregarPar(rejilla, "Observaciones:",
+                txtObservaciones, 2, 1);
+
+            // FILA 3
+            AgregarPar(rejilla, "Fecha de registro:",
+                dtpFechaRegistro, 0, 2);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ BOTONERA ═══════════════════════
+
+        private Control CrearBotonera()
+        {
+            Panel contenedor = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 68,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            FlowLayoutPanel fila = new()
+            {
+                AutoSize = true,
+                Height = 48,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            Button btnRegistrar = NuevoBoton(
+                "REGISTRAR", TipoBoton.Primario);
+            btnRegistrar.Click += (s, e) => Registrar();
+
+            Button btnActualizar = NuevoBoton(
+                "ACTUALIZAR", TipoBoton.Primario);
+            btnActualizar.Click += (s, e) => Actualizar();
+
+            Button btnEliminar = NuevoBoton(
+                "ELIMINAR", TipoBoton.Peligro);
+            btnEliminar.Click += (s, e) => Eliminar();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+            btnLimpiar.Click += (s, e) => Limpiar();
+
+            fila.Controls.Add(btnRegistrar);
+            fila.Controls.Add(btnActualizar);
+            fila.Controls.Add(btnEliminar);
+            fila.Controls.Add(btnLimpiar);
+
+            contenedor.Controls.Add(fila);
+
+            void CentrarBotones()
+            {
+                fila.Left = Math.Max(
+                    0,
+                    (contenedor.ClientSize.Width - fila.Width) / 2
+                );
+            }
+
+            contenedor.Resize += (s, e) => CentrarBotones();
+            CentrarBotones();
+
+            return contenedor;
+        }
+        // ═══════════════════════ TABLA ═══════════════════════
+
+        private GroupBox CrearGrupoTabla()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Historias clínicas registradas", 280);
+
+            dgvHistorias = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoGenerateColumns = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                Margin = new Padding(5)
+            };
+
+            dgvHistorias.SelectionChanged +=
+                (s, e) => Seleccionar();
+
+            grupo.Controls.Add(dgvHistorias);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ AYUDAS DE DISEÑO ═══════════════════════
+
+        private GroupBox CrearGrupo(string titulo, int alto)
+        {
+            return new GroupBox
+            {
+                Text = titulo,
+                Dock = DockStyle.Top,
+                Height = alto,
+                Margin = new Padding(0, 0, 0, 14),
+                Padding = new Padding(16, 10, 16, 10)
+            };
+        }
+
+        private TableLayoutPanel CrearRejilla(int columnas, int filas)
+        {
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = columnas,
+                RowCount = filas,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            for (int i = 0; i < columnas; i++)
+            {
+                if (i % 2 == 0)
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(SizeType.AutoSize));
+                else
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(
+                            SizeType.Percent,
+                            100f / (columnas / 2)));
+            }
+
+            for (int i = 0; i < filas; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 46));
+            }
+
+            return rejilla;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = NuevaEtiqueta(texto);
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 6, 18, 6);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private Label NuevaEtiqueta(string texto)
+        {
+            return new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 0, 10, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario();
+        }
+
+        private CampoInventario NuevaArea()
+        {
+            CampoInventario campo = new()
+            {
+                Dock = DockStyle.Fill,
+                Margin = new Padding(5, 8, 5, 8),
+                MinimumSize = new Size(0, 70)
+            };
+
+            campo.ConfigurarMultilinea(true, ScrollBars.Vertical);
+
+            return campo;
+        }
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(0, 0, 12, 0)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        // ═══════════════════════ CONFIGURACIÓN TABLA ═══════════════════════
+
+        private void ConfigurarTabla()
+        {
+            TemaSIGEPOSTA.EstilizarTabla(dgvHistorias);
+
+            Columna("Dni", "DNI");
+            Columna("Paciente", "Paciente");
+            Columna("GrupoSanguineo", "Grupo sanguíneo");
+            Columna("FechaRegistro", "Fecha de registro");
+
+            dgvHistorias.Columns["FechaRegistro"]!
+                .DefaultCellStyle.Format = "dd/MM/yyyy";
+
+            dgvHistorias.DataSource = historias;
+        }
+
+        private void Columna(string propiedad, string titulo)
+        {
+            dgvHistorias.Columns.Add(
+                new DataGridViewTextBoxColumn
+                {
+                    Name = propiedad,
+                    DataPropertyName = propiedad,
+                    HeaderText = titulo
+                });
+        }
+
+
+// ═══════════════════════ ESTILOS ═══════════════════════
+
+private void AplicarEstilos()
+{
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = TemaSIGEPOSTA.Fuente;
+
+    AplicarEstilosRecursivos(this);
+
+    // Fecha de registro
+    TemaSIGEPOSTA.EstilizarFecha(dtpFechaRegistro);
+
+    // Tabla de historias clínicas
+    TemaSIGEPOSTA.EstilizarTabla(dgvHistorias);
+}
+
+private void AplicarEstilosRecursivos(Control control)
+{
+    if (control is GroupBox grupo)
+    {
+        TemaSIGEPOSTA.EstilizarGrupo(grupo);
+    }
+    else if (control is TextBox caja)
+    {
+        if (caja.Multiline)
+        {
+            caja.BackColor = TemaSIGEPOSTA.FondoCampo;
+            caja.ForeColor = TemaSIGEPOSTA.Texto;
+            caja.Font = TemaSIGEPOSTA.FuenteCampo;
+            caja.BorderStyle = BorderStyle.FixedSingle;
+        }
+        else
+        {
+            TemaSIGEPOSTA.EstilizarTextBox(caja);
+        }
+    }
+    else if (control is Label etiqueta)
+    {
+        TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+    }
+    else if (control is Button boton)
+    {
+        TipoBoton tipo = boton.Text.Contains("ELIMINAR")
+            ? TipoBoton.Peligro
+            : boton.Text.Contains("LIMPIAR")
+                ? TipoBoton.Secundario
+                : TipoBoton.Primario;
+
+        TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+    }
+
+    foreach (Control hijo in control.Controls)
+    {
+        AplicarEstilosRecursivos(hijo);
+    }
+}
+
+
+        // ═══════════════════════ LÓGICA ═══════════════════════
+
+        private void Registrar()
+        {
+            if (!Validar())
+                return;
+
+            if (historias.Any(h => h.Dni == txtDni.Text.Trim()))
+            {
+                MessageBox.Show(
+                    "Este paciente ya tiene una historia clínica registrada.");
+
+                return;
+            }
+
+            historias.Add(ObtenerDatos());
+
+            MessageBox.Show("Historia clínica registrada correctamente.");
+            Limpiar();
+        }
+
+        private void Actualizar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= historias.Count)
+            {
+                MessageBox.Show("Seleccione una historia clínica.");
+                return;
+            }
+
+            if (!Validar())
+                return;
+
+            string dni = txtDni.Text.Trim();
+
+            if (historias.Any(h =>
+                h.Dni == dni &&
+                h != historias[indiceSeleccionado]))
+            {
+                MessageBox.Show(
+                    "El DNI pertenece a otra historia clínica.");
+
+                return;
+            }
+
+            HistoriaVista nuevo = ObtenerDatos();
+            HistoriaVista anterior = historias[indiceSeleccionado];
+
+            anterior.Dni = nuevo.Dni;
+            anterior.Paciente = nuevo.Paciente;
+            anterior.GrupoSanguineo = nuevo.GrupoSanguineo;
+            anterior.Alergias = nuevo.Alergias;
+            anterior.AntecedentesPersonales = nuevo.AntecedentesPersonales;
+            anterior.AntecedentesFamiliares = nuevo.AntecedentesFamiliares;
+            anterior.Observaciones = nuevo.Observaciones;
+            anterior.FechaRegistro = nuevo.FechaRegistro;
+
+            dgvHistorias.Refresh();
+
+            MessageBox.Show("Historia clínica actualizada correctamente.");
+            Limpiar();
+        }
+
+        private void Eliminar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= historias.Count)
+            {
+                MessageBox.Show("Seleccione una historia clínica.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Está seguro de eliminar esta historia clínica?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                historias.RemoveAt(indiceSeleccionado);
+
+                MessageBox.Show("Registro eliminado.");
+                Limpiar();
+            }
+        }
+
+        private void Seleccionar()
+        {
+            if (dgvHistorias.CurrentRow?.DataBoundItem
+                is not HistoriaVista h)
+                return;
+
+            indiceSeleccionado = historias.IndexOf(h);
+
+            txtDni.Text = h.Dni;
+            txtPaciente.Text = h.Paciente;
+            txtGrupoSanguineo.Text = h.GrupoSanguineo;
+            txtAlergias.Text = h.Alergias;
+            txtAntecedentesPersonales.Text = h.AntecedentesPersonales;
+            txtAntecedentesFamiliares.Text = h.AntecedentesFamiliares;
+            txtObservaciones.Text = h.Observaciones;
+            dtpFechaRegistro.Value = h.FechaRegistro;
+        }
+
+        private bool Validar()
+        {
+            if (string.IsNullOrWhiteSpace(txtDni.Text) ||
+                string.IsNullOrWhiteSpace(txtPaciente.Text))
+            {
+                MessageBox.Show(
+                    "Ingrese el DNI y el nombre del paciente.");
+
+                return false;
+            }
+
+            string dni = txtDni.Text.Trim();
+
+            if (dni.Length != 8 || !dni.All(char.IsDigit))
+            {
+                MessageBox.Show(
+                    "El DNI debe contener exactamente 8 números.");
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private HistoriaVista ObtenerDatos()
+        {
+            return new HistoriaVista
+            {
+                Dni = txtDni.Text.Trim(),
+                Paciente = txtPaciente.Text.Trim(),
+                GrupoSanguineo = txtGrupoSanguineo.Text.Trim(),
+                Alergias = txtAlergias.Text.Trim(),
+                AntecedentesPersonales = txtAntecedentesPersonales.Text.Trim(),
+                AntecedentesFamiliares = txtAntecedentesFamiliares.Text.Trim(),
+                Observaciones = txtObservaciones.Text.Trim(),
+                FechaRegistro = dtpFechaRegistro.Value.Date
+            };
+        }
+
+        private void Limpiar()
+        {
+            indiceSeleccionado = -1;
+
+            txtDni.Clear();
+            txtPaciente.Clear();
+            txtGrupoSanguineo.Clear();
+            txtAlergias.Clear();
+            txtAntecedentesPersonales.Clear();
+            txtAntecedentesFamiliares.Clear();
+            txtObservaciones.Clear();
+
+            dtpFechaRegistro.Value = DateTime.Today;
+            dgvHistorias.ClearSelection();
+        }
+
+        // ═══════════════════════ MODELO ═══════════════════════
+
+        private class HistoriaVista
+        {
+            public string Dni { get; set; } = "";
+            public string Paciente { get; set; } = "";
+            public string GrupoSanguineo { get; set; } = "";
+            public string Alergias { get; set; } = "";
+            public string AntecedentesPersonales { get; set; } = "";
+            public string AntecedentesFamiliares { get; set; } = "";
+            public string Observaciones { get; set; } = "";
+            public DateTime FechaRegistro { get; set; }
+        }
+    }
+}
+
+
+
+
+
+
+
+========================================
+ARCHIVO: FormReportes.cs
+========================================
+using System;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormReportes : Form
+    {
+        private ComboBox cmbReporte = new();
+        private DateTimePicker dtpDesde = new();
+        private DateTimePicker dtpHasta = new();
+        private DataGridView dgvReporte = new();
+        private Label lblResumen = new();
+
+        public FormReportes()
+        {
+            ConstruirFormulario();
+            AplicarEstilos();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Reportes";
+            Size = new Size(1250, 820);
+            MinimumSize = new Size(1050, 700);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "REPORTES DEL ESTABLECIMIENTO",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Consulta y generación de reportes administrativos y clínicos",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel contenido = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            contenido.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 165));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 75));
+
+            contenido.Controls.Add(CrearGrupoFiltros(), 0, 0);
+            contenido.Controls.Add(CrearGrupoResultados(), 0, 1);
+            contenido.Controls.Add(CrearPie(), 0, 2);
+
+            cuerpo.Controls.Add(contenido);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        private GroupBox CrearGrupoFiltros()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Filtros del reporte",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16, 12, 16, 12),
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 2,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+
+            cmbReporte = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            cmbReporte.Items.AddRange(new object[]
+            {
+                "Reporte de pacientes",
+                "Reporte de personal de salud",
+                "Reporte de citas médicas",
+                "Reporte de atenciones médicas",
+                "Reporte de diagnósticos",
+                "Reporte de medicamentos",
+                "Reporte de movimientos de inventario"
+            });
+
+            cmbReporte.SelectedIndex = 0;
+
+            dtpDesde = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            dtpHasta = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            AgregarPar(rejilla, "Tipo de reporte:", cmbReporte, 0);
+            AgregarPar(rejilla, "Desde:", dtpDesde, 2);
+            AgregarPar(rejilla, "Hasta:", dtpHasta, 4);
+
+            Button btnConsultar = NuevoBoton(
+                "CONSULTAR", TipoBoton.Primario);
+
+            btnConsultar.Click += (s, e) => Consultar();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+
+            btnLimpiar.Click += (s, e) => Limpiar();
+
+            FlowLayoutPanel botones = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 5, 0, 0)
+            };
+
+            botones.Controls.Add(btnConsultar);
+            botones.Controls.Add(btnLimpiar);
+
+            Panel centrado = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            centrado.Controls.Add(botones);
+
+            Action centrar = () =>
+            {
+                botones.Left = Math.Max(
+                    0, (centrado.ClientSize.Width - botones.Width) / 2);
+            };
+
+            centrado.Resize += (s, e) => centrar();
+            botones.SizeChanged += (s, e) => centrar();
+
+            rejilla.Controls.Add(centrado, 0, 1);
+            rejilla.SetColumnSpan(centrado, 6);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna)
+        {
+            Label etiqueta = new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            rejilla.Controls.Add(etiqueta, columna, 0);
+            rejilla.Controls.Add(campo, columna + 1, 0);
+        }
+
+        private GroupBox CrearGrupoResultados()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Resultados del reporte",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12),
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            dgvReporte = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = TemaSIGEPOSTA.Blanco,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = true,
+                BorderStyle = BorderStyle.None,
+                Margin = new Padding(5)
+            };
+
+            grupo.Controls.Add(dgvReporte);
+
+            return grupo;
+        }
+
+        private Control CrearPie()
+        {
+            TableLayoutPanel pie = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            pie.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 75));
+
+            pie.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 25));
+
+            lblResumen = new Label
+            {
+                Text = "Sin información para mostrar.",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = TemaSIGEPOSTA.VerdeOscuro,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta,
+                Padding = new Padding(5)
+            };
+
+            Button btnExportar = NuevoBoton(
+                "EXPORTAR CSV", TipoBoton.Primario);
+
+            btnExportar.Anchor = AnchorStyles.Right;
+            btnExportar.Click += (s, e) => ExportarCSV();
+
+            pie.Controls.Add(lblResumen, 0, 0);
+            pie.Controls.Add(btnExportar, 1, 0);
+
+            return pie;
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(6, 5, 6, 5)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        private void AplicarEstilos()
+        {
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            AplicarEstilosRecursivos(this);
+
+            TemaSIGEPOSTA.EstilizarComboBox(cmbReporte);
+            TemaSIGEPOSTA.EstilizarFecha(dtpDesde);
+            TemaSIGEPOSTA.EstilizarFecha(dtpHasta);
+            TemaSIGEPOSTA.EstilizarTabla(dgvReporte);
+        }
+
+        private void AplicarEstilosRecursivos(Control control)
+        {
+            if (control is GroupBox grupo)
+            {
+                TemaSIGEPOSTA.EstilizarGrupo(grupo);
+            }
+            else if (control is ComboBox combo)
+            {
+                TemaSIGEPOSTA.EstilizarComboBox(combo);
+            }
+            else if (control is Label etiqueta)
+            {
+                TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+            }
+
+            foreach (Control hijo in control.Controls)
+            {
+                AplicarEstilosRecursivos(hijo);
+            }
+        }
+
+        private void Consultar()
+        {
+            if (dtpDesde.Value.Date > dtpHasta.Value.Date)
+            {
+                MessageBox.Show(
+                    "La fecha inicial no puede ser posterior a la fecha final.");
+                return;
+            }
+
+            dgvReporte.DataSource = null;
+
+            lblResumen.Text = "Reporte seleccionado: " + cmbReporte.Text +
+                              " | Periodo: " +
+                              dtpDesde.Value.ToShortDateString() + " - " +
+                              dtpHasta.Value.ToShortDateString();
+
+            MessageBox.Show(
+                "La estructura del reporte está preparada. " +
+                "Los resultados se conectarán con SQL Server posteriormente."
+            );
+        }
+
+        private void ExportarCSV()
+        {
+            if (dgvReporte.Columns.Count == 0 ||
+                dgvReporte.Rows.Count == 0)
+            {
+                MessageBox.Show("No existen resultados para exportar.");
+                return;
+            }
+
+            using SaveFileDialog guardar = new SaveFileDialog
+            {
+                Filter = "Archivo CSV (*.csv)|*.csv",
+                FileName = "Reporte_SIGEPOSTA.csv",
+                Title = "Guardar reporte"
+            };
+
+            if (guardar.ShowDialog() != DialogResult.OK)
+                return;
+
+            try
+            {
+                using System.IO.StreamWriter escritor =
+                    new System.IO.StreamWriter(
+                        guardar.FileName,
+                        false,
+                        System.Text.Encoding.UTF8);
+
+                string encabezados = string.Join(";",
+                    dgvReporte.Columns.Cast<DataGridViewColumn>()
+                    .Select(c => EscaparCSV(c.HeaderText)));
+
+                escritor.WriteLine(encabezados);
+
+                foreach (DataGridViewRow fila in dgvReporte.Rows)
+                {
+                    if (fila.IsNewRow)
+                        continue;
+
+                    string valores = string.Join(";",
+                        fila.Cells.Cast<DataGridViewCell>()
+                        .Select(c => EscaparCSV(c.Value?.ToString() ?? "")));
+
+                    escritor.WriteLine(valores);
+                }
+
+                MessageBox.Show("Reporte exportado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al exportar: " + ex.Message);
+            }
+        }
+
+        private string EscaparCSV(string valor)
+        {
+            return "\"" + valor.Replace("\"", "\"\"") + "\"";
+        }
+
+        private void Limpiar()
+        {
+            cmbReporte.SelectedIndex = 0;
+            dtpDesde.Value = DateTime.Today;
+            dtpHasta.Value = DateTime.Today;
+            dgvReporte.DataSource = null;
+            lblResumen.Text = "Sin información para mostrar.";
+        }
+    }
+}
+
+
+
+
+
+========================================
+ARCHIVO: FormRespaldos.cs
+========================================
+using System;
+using System.Drawing;
+using System.IO;
+using System.IO.Compression;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormRespaldos : Form
+    {
+        private TextBox txtCarpetaOrigen = new();
+        private TextBox txtCarpetaRespaldos = new();
+        private DataGridView dgvRespaldos = new();
+        private Label lblEstado = new();
+
+        public FormRespaldos()
+        {
+            ConstruirFormulario();
+            AplicarEstilos();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Respaldos";
+            Size = new Size(1250, 820);
+            MinimumSize = new Size(1050, 700);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "COPIAS DE SEGURIDAD Y RESPALDOS",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Administración y protección de la información de SIGEPOSTA",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel contenido = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 4,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            contenido.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 180));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 70));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 45));
+
+            contenido.Controls.Add(CrearGrupoCarpetas(), 0, 0);
+            contenido.Controls.Add(CrearBotonera(), 0, 1);
+            contenido.Controls.Add(CrearGrupoTabla(), 0, 2);
+
+            lblEstado = new Label
+            {
+                Text = "Estado: esperando operación.",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = TemaSIGEPOSTA.VerdeOscuro,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta,
+                Padding = new Padding(5)
+            };
+
+            contenido.Controls.Add(lblEstado, 0, 3);
+
+            cuerpo.Controls.Add(contenido);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        private GroupBox CrearGrupoCarpetas()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Configuración de carpetas",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16, 12, 16, 12),
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 3,
+                RowCount = 2,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 165));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 180));
+
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 50));
+
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 50));
+
+            txtCarpetaOrigen = NuevoCampoRuta();
+            txtCarpetaRespaldos = NuevoCampoRuta();
+
+            Button btnOrigen = NuevoBoton(
+                "SELECCIONAR", TipoBoton.Primario);
+
+            btnOrigen.Click += (s, e) => SeleccionarOrigen();
+
+            Button btnDestino = NuevoBoton(
+                "SELECCIONAR", TipoBoton.Primario);
+
+            btnDestino.Click += (s, e) => SeleccionarDestino();
+
+            AgregarFilaCarpeta(
+                rejilla, "Carpeta de origen:",
+                txtCarpetaOrigen, btnOrigen, 0);
+
+            AgregarFilaCarpeta(
+                rejilla, "Carpeta de respaldos:",
+                txtCarpetaRespaldos, btnDestino, 1);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        private TextBox NuevoCampoRuta()
+        {
+            return new TextBox
+            {
+                ReadOnly = true,
+                Dock = DockStyle.Fill,
+                BackColor = TemaSIGEPOSTA.FondoCampo,
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteCampo,
+                BorderStyle = BorderStyle.FixedSingle,
+                Margin = new Padding(0, 7, 15, 7)
+            };
+        }
+
+        private void AgregarFilaCarpeta(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            Control boton,
+            int fila)
+        {
+            Label etiqueta = new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            boton.Anchor = AnchorStyles.Left;
+            boton.Margin = new Padding(0, 5, 0, 5);
+
+            rejilla.Controls.Add(etiqueta, 0, fila);
+            rejilla.Controls.Add(campo, 1, fila);
+            rejilla.Controls.Add(boton, 2, fila);
+        }
+
+        private Control CrearBotonera()
+        {
+            Panel contenedor = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0, 8, 0, 0)
+            };
+
+            Button btnCrear = NuevoBoton(
+                "CREAR RESPALDO", TipoBoton.Primario);
+
+            btnCrear.Click += (s, e) => CrearRespaldo();
+
+            Button btnListar = NuevoBoton(
+                "ACTUALIZAR LISTA", TipoBoton.Primario);
+
+            btnListar.Click += (s, e) => ListarRespaldos();
+
+            Button btnRestaurar = NuevoBoton(
+                "RESTAURAR", TipoBoton.Peligro);
+
+            btnRestaurar.Click += (s, e) => RestaurarRespaldo();
+
+            fila.Controls.Add(btnCrear);
+            fila.Controls.Add(btnListar);
+            fila.Controls.Add(btnRestaurar);
+
+            contenedor.Controls.Add(fila);
+
+            Action centrar = () =>
+            {
+                fila.Left = Math.Max(
+                    0, (contenedor.ClientSize.Width - fila.Width) / 2);
+
+                fila.Top = 0;
+            };
+
+            contenedor.Resize += (s, e) => centrar();
+            fila.SizeChanged += (s, e) => centrar();
+
+            centrar();
+
+            return contenedor;
+        }
+
+        private GroupBox CrearGrupoTabla()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Respaldos disponibles",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12),
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 0, 0, 10)
+            };
+
+            dgvRespaldos = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = TemaSIGEPOSTA.Blanco,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = true,
+                BorderStyle = BorderStyle.None,
+                Margin = new Padding(5)
+            };
+
+            grupo.Controls.Add(dgvRespaldos);
+
+            return grupo;
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(8, 5, 8, 5)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        private void AplicarEstilos()
+        {
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            AplicarEstilosRecursivos(this);
+
+            TemaSIGEPOSTA.EstilizarTabla(dgvRespaldos);
+        }
+
+        private void AplicarEstilosRecursivos(Control control)
+        {
+            if (control is GroupBox grupo)
+            {
+                TemaSIGEPOSTA.EstilizarGrupo(grupo);
+            }
+            else if (control is TextBox caja)
+            {
+                TemaSIGEPOSTA.EstilizarTextBox(caja);
+                caja.ReadOnly = true;
+            }
+            else if (control is Label etiqueta)
+            {
+                TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+            }
+
+            foreach (Control hijo in control.Controls)
+            {
+                AplicarEstilosRecursivos(hijo);
+            }
+        }
+
+        private void SeleccionarOrigen()
+        {
+            using FolderBrowserDialog dialogo = new FolderBrowserDialog
+            {
+                Description = "Seleccione la carpeta que desea respaldar"
+            };
+
+            if (dialogo.ShowDialog() == DialogResult.OK)
+                txtCarpetaOrigen.Text = dialogo.SelectedPath;
+        }
+
+        private void SeleccionarDestino()
+        {
+            using FolderBrowserDialog dialogo = new FolderBrowserDialog
+            {
+                Description = "Seleccione la carpeta donde se guardarán los respaldos"
+            };
+
+            if (dialogo.ShowDialog() == DialogResult.OK)
+            {
+                txtCarpetaRespaldos.Text = dialogo.SelectedPath;
+                ListarRespaldos();
+            }
+        }
+
+        private void CrearRespaldo()
+        {
+            string origen = txtCarpetaOrigen.Text;
+            string destino = txtCarpetaRespaldos.Text;
+
+            if (!Directory.Exists(origen))
+            {
+                MessageBox.Show("Seleccione una carpeta de origen válida.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(destino))
+            {
+                MessageBox.Show("Seleccione la carpeta de respaldos.");
+                return;
+            }
+
+            string rutaOrigen = Path.GetFullPath(origen)
+                .TrimEnd(Path.DirectorySeparatorChar) +
+                Path.DirectorySeparatorChar;
+
+            string rutaDestino = Path.GetFullPath(destino)
+                .TrimEnd(Path.DirectorySeparatorChar) +
+                Path.DirectorySeparatorChar;
+
+            if (rutaDestino.StartsWith(
+                rutaOrigen,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "La carpeta de respaldos no puede estar dentro de la carpeta de origen."
+                );
+                return;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(destino);
+
+                string nombre = "SIGEPOSTA_Respaldo_" +
+                                DateTime.Now.ToString("yyyyMMdd_HHmmss") +
+                                ".zip";
+
+                string archivo = Path.Combine(destino, nombre);
+
+                ZipFile.CreateFromDirectory(
+                    origen,
+                    archivo,
+                    CompressionLevel.Optimal,
+                    false
+                );
+
+                lblEstado.Text = "Estado: respaldo creado correctamente.";
+
+                MessageBox.Show(
+                    "Copia de seguridad creada correctamente.\n\n" +
+                    archivo
+                );
+
+                ListarRespaldos();
+            }
+            catch (Exception ex)
+            {
+                lblEstado.Text = "Estado: error al crear el respaldo.";
+
+                MessageBox.Show(
+                    "No se pudo crear el respaldo:\n" + ex.Message
+                );
+            }
+        }
+
+        private void ListarRespaldos()
+        {
+            string carpeta = txtCarpetaRespaldos.Text;
+
+            if (!Directory.Exists(carpeta))
+            {
+                dgvRespaldos.DataSource = null;
+                return;
+            }
+
+            var archivos = Directory.GetFiles(carpeta, "*.zip")
+                .Select(ruta => new
+                {
+                    Nombre = Path.GetFileName(ruta),
+                    Ubicacion = ruta,
+                    Fecha = File.GetLastWriteTime(ruta),
+                    Tamano = Math.Round(
+                        new FileInfo(ruta).Length / 1024.0,
+                        2
+                    ) + " KB"
+                })
+                .OrderByDescending(a => a.Fecha)
+                .ToList();
+
+            dgvRespaldos.DataSource = archivos;
+
+            lblEstado.Text = "Estado: " + archivos.Count +
+                             " respaldo(s) encontrado(s).";
+        }
+
+        private void RestaurarRespaldo()
+        {
+            if (dgvRespaldos.CurrentRow == null)
+            {
+                MessageBox.Show("Seleccione un respaldo de la lista.");
+                return;
+            }
+
+            string archivo = dgvRespaldos.CurrentRow
+                .Cells["Ubicacion"].Value?.ToString() ?? "";
+
+            if (!File.Exists(archivo))
+            {
+                MessageBox.Show("El archivo seleccionado no existe.");
+                return;
+            }
+
+            using FolderBrowserDialog dialogo = new FolderBrowserDialog
+            {
+                Description = "Seleccione la carpeta donde se restaurarán los archivos"
+            };
+
+            if (dialogo.ShowDialog() != DialogResult.OK)
+                return;
+
+            DialogResult respuesta = MessageBox.Show(
+                "La restauración puede sobrescribir archivos existentes.\n" +
+                "Se recomienda crear un respaldo de la carpeta de destino antes de continuar.\n\n" +
+                "¿Desea continuar?",
+                "Confirmar restauración",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta != DialogResult.Yes)
+                return;
+
+            try
+            {
+                ZipFile.ExtractToDirectory(
+                    archivo,
+                    dialogo.SelectedPath,
+                    true
+                );
+
+                lblEstado.Text = "Estado: restauración completada.";
+
+                MessageBox.Show("Respaldo restaurado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                lblEstado.Text = "Estado: error al restaurar.";
+
+                MessageBox.Show(
+                    "No se pudo restaurar el respaldo:\n" + ex.Message
+                );
+            }
+        }
+    }
+}
+
+
+
+
+
+========================================
+ARCHIVO: FormUsuarios.cs
+========================================
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormUsuarios : Form
+    {
+        private CampoInventario txtUsuario;
+        private CampoInventario txtNombre;
+        private TextBox txtContrasena;
+        private ComboBox cmbRol;
+        private CheckBox chkActivo;
+        private DataGridView tabla;
+
+        private readonly Color verdeOscuro = Color.FromArgb(31, 77, 54);
+        private readonly Color verde = Color.FromArgb(47, 125, 69);
+        private readonly Color fondo = Color.FromArgb(245, 248, 246);
+
+        public FormUsuarios()
+        {
+            ConfigurarVentana();
+            CrearFormulario();
+            CrearTabla();
+
+            SIGEPOSTA.Presentacion.Estilos.EstiloFormulario.Aplicar(this);
+            AplicarEstilosLocales();
+        }
+
+        private void ConfigurarVentana()
+        {
+            Text = "Administración de usuarios - SIGEPOSTA";
+            Size = new Size(1200, 780);
+            MinimumSize = new Size(950, 650);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = fondo;
+            Font = new Font("Segoe UI", 10F);
+        }
+
+        private void CrearFormulario()
+        {
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = verdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = verdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "ADMINISTRACIÓN DE USUARIOS",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Gestione las cuentas y los permisos de acceso al sistema",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            Controls.Add(encabezado);
+
+            Label descripcion = new Label
+            {
+                Text = "Registre y administre las cuentas de acceso del personal.",
+                Location = new Point(28, 116),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(95, 105, 98),
+                Font = new Font("Segoe UI", 10F)
+            };
+
+            Controls.Add(descripcion);
+
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Datos de la cuenta",
+                Location = new Point(25, 145),
+                Size = new Size(1135, 230),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = verdeOscuro,
+                BackColor = Color.White
+            };
+
+            CrearEtiqueta(grupo, "Nombre completo:", 25, 43);
+            txtNombre = CrearCampo(grupo, 165, 39, 350);
+
+            CrearEtiqueta(grupo, "Nombre de usuario:", 565, 43);
+            txtUsuario = CrearCampo(grupo, 715, 39, 370);
+
+            CrearEtiqueta(grupo, "Contraseña:", 25, 94);
+
+            txtContrasena = new TextBox
+            {
+                Location = new Point(165, 90),
+                Size = new Size(350, 32),
+                Font = new Font("Segoe UI", 10),
+                UseSystemPasswordChar = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+
+            grupo.Controls.Add(txtContrasena);
+
+            CrearEtiqueta(grupo, "Rol:", 565, 94);
+
+            cmbRol = new ComboBox
+            {
+                Location = new Point(715, 90),
+                Size = new Size(370, 32),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(250, 252, 250),
+                FlatStyle = FlatStyle.Flat
+            };
+
+            cmbRol.Items.AddRange(new object[]
+            {
+                "Administrador",
+                "Personal de salud",
+                "Vendedor",
+                "Almacenero"
+            });
+
+            cmbRol.SelectedIndex = 1;
+            grupo.Controls.Add(cmbRol);
+
+            chkActivo = new CheckBox
+            {
+                Text = "Usuario activo",
+                Location = new Point(165, 143),
+                AutoSize = true,
+                Checked = true,
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = Color.FromArgb(65, 75, 68)
+            };
+
+            grupo.Controls.Add(chkActivo);
+
+            FlowLayoutPanel panelBotones = new FlowLayoutPanel
+            {
+                Location = new Point(25, 178),
+                Size = new Size(1080, 42),
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+
+            Button btnRegistrar = CrearBoton("REGISTRAR", verde, 125);
+            btnRegistrar.Click += (s, e) => RegistrarUsuario();
+
+            Button btnEditar = CrearBoton("ACTUALIZAR", Color.FromArgb(36, 112, 160), 125);
+            btnEditar.Click += (s, e) => ActualizarUsuario();
+
+            Button btnEliminar = CrearBoton("ELIMINAR", Color.FromArgb(190, 65, 65), 125);
+            btnEliminar.Click += (s, e) => EliminarUsuario();
+
+            Button btnLimpiar = CrearBoton("LIMPIAR", Color.FromArgb(105, 115, 108), 125);
+            btnLimpiar.Click += (s, e) => LimpiarCampos();
+
+            panelBotones.Controls.AddRange(new Control[]
+            {
+                btnRegistrar, btnEditar, btnEliminar, btnLimpiar
+            });
+
+            grupo.Controls.Add(panelBotones);
+            Controls.Add(grupo);
+        }
+
+        private void CrearTabla()
+        {
+            GroupBox grupoTabla = new GroupBox
+            {
+                Text = "Usuarios registrados",
+                Location = new Point(25, 375),
+                Size = new Size(1135, 330),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                         AnchorStyles.Left | AnchorStyles.Right,
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = verdeOscuro,
+                BackColor = Color.White
+            };
+
+            tabla = new DataGridView
+            {
+                Location = new Point(15, 28),
+                Size = new Size(1100, 285),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                         AnchorStyles.Left | AnchorStyles.Right,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = false,
+                Font = new Font("Segoe UI", 10F),
+                EnableHeadersVisualStyles = false,
+                GridColor = Color.FromArgb(225, 232, 227),
+                RowTemplate = { Height = 34 }
+            };
+
+            tabla.ColumnHeadersDefaultCellStyle.BackColor = verdeOscuro;
+            tabla.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            tabla.ColumnHeadersDefaultCellStyle.Font =
+                new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            tabla.ColumnHeadersDefaultCellStyle.Alignment =
+                DataGridViewContentAlignment.MiddleLeft;
+            tabla.ColumnHeadersHeight = 42;
+            tabla.ColumnHeadersHeightSizeMode =
+                DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            tabla.DefaultCellStyle.BackColor = Color.White;
+            tabla.DefaultCellStyle.ForeColor = Color.FromArgb(55, 65, 58);
+            tabla.DefaultCellStyle.SelectionBackColor = Color.FromArgb(218, 237, 224);
+            tabla.DefaultCellStyle.SelectionForeColor = verdeOscuro;
+            tabla.DefaultCellStyle.Padding = new Padding(7, 3, 7, 3);
+
+            tabla.AlternatingRowsDefaultCellStyle.BackColor =
+                Color.FromArgb(246, 250, 247);
+
+            tabla.Columns.Add("Nombre", "Nombre completo");
+            tabla.Columns.Add("Usuario", "Nombre de usuario");
+            tabla.Columns.Add("Rol", "Rol");
+            tabla.Columns.Add("Estado", "Estado");
+
+            tabla.CellClick += (s, e) => SeleccionarUsuario();
+
+            grupoTabla.Controls.Add(tabla);
+            Controls.Add(grupoTabla);
+        }
+
+        private void AplicarEstilosLocales()
+        {
+            foreach (Control control in Controls)
+            {
+                if (control is Panel panel && panel.Dock == DockStyle.Top)
+                    continue;
+
+                if (control is GroupBox grupo)
+                {
+                    grupo.ForeColor = verdeOscuro;
+                    grupo.BackColor = Color.White;
+                }
+            }
+
+            tabla.EnableHeadersVisualStyles = false;
+            tabla.ColumnHeadersDefaultCellStyle.BackColor = verdeOscuro;
+            tabla.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        }
+
+        private void CrearEtiqueta(Control contenedor, string texto, int x, int y)
+        {
+            contenedor.Controls.Add(new Label
+            {
+                Text = texto,
+                Location = new Point(x, y + 5),
+                Size = new Size(135, 25),
+                Font = new Font("Segoe UI", 10F),
+                ForeColor = Color.FromArgb(65, 75, 68),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
+        }
+
+        private CampoInventario CrearCampo(
+            Control contenedor, int x, int y, int ancho)
+        {
+            CampoInventario campo = new CampoInventario
+            {
+                Location = new Point(x, y),
+                Size = new Size(ancho, 36),
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+
+            contenedor.Controls.Add(campo);
+            return campo;
+        }
+
+        private Button CrearBoton(string texto, Color color, int ancho)
+        {
+            return new Button
+            {
+                Text = texto,
+                Size = new Size(ancho, 36),
+                Margin = new Padding(8, 2, 8, 2),
+                BackColor = color,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false
+            };
+        }
+
+        private void RegistrarUsuario()
+        {
+            if (!ValidarCampos())
+                return;
+
+            foreach (DataGridViewRow fila in tabla.Rows)
+            {
+                if (string.Equals(
+                    Convert.ToString(fila.Cells["Usuario"].Value),
+                    txtUsuario.Text.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("El nombre de usuario ya está registrado.");
+                    return;
+                }
+            }
+
+            tabla.Rows.Add(
+                txtNombre.Text.Trim(),
+                txtUsuario.Text.Trim(),
+                cmbRol.Text,
+                chkActivo.Checked ? "Activo" : "Inactivo"
+            );
+
+            MessageBox.Show(
+                "Usuario agregado temporalmente.",
+                "SIGEPOSTA",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+
+            LimpiarCampos();
+        }
+
+        private void ActualizarUsuario()
+        {
+            if (tabla.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Seleccione un usuario de la tabla.");
+                return;
+            }
+
+            if (!ValidarCampos())
+                return;
+
+            DataGridViewRow fila = tabla.SelectedRows[0];
+            string usuarioNuevo = txtUsuario.Text.Trim();
+
+            foreach (DataGridViewRow otraFila in tabla.Rows)
+            {
+                if (otraFila == fila)
+                    continue;
+
+                if (string.Equals(
+                    Convert.ToString(otraFila.Cells["Usuario"].Value),
+                    usuarioNuevo,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("Ese nombre de usuario ya pertenece a otra cuenta.");
+                    return;
+                }
+            }
+
+            fila.Cells["Nombre"].Value = txtNombre.Text.Trim();
+            fila.Cells["Usuario"].Value = usuarioNuevo;
+            fila.Cells["Rol"].Value = cmbRol.Text;
+            fila.Cells["Estado"].Value = chkActivo.Checked ? "Activo" : "Inactivo";
+
+            MessageBox.Show("Usuario actualizado temporalmente.");
+            LimpiarCampos();
+        }
+
+        private void EliminarUsuario()
+        {
+            if (tabla.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Seleccione un usuario de la tabla.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Está seguro de eliminar este usuario?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                tabla.Rows.RemoveAt(tabla.SelectedRows[0].Index);
+                LimpiarCampos();
+            }
+        }
+
+        private void SeleccionarUsuario()
+        {
+            if (tabla.SelectedRows.Count == 0)
+                return;
+
+            DataGridViewRow fila = tabla.SelectedRows[0];
+
+            txtNombre.Text = Convert.ToString(fila.Cells["Nombre"].Value) ?? "";
+            txtUsuario.Text = Convert.ToString(fila.Cells["Usuario"].Value) ?? "";
+            cmbRol.Text = Convert.ToString(fila.Cells["Rol"].Value) ?? "";
+            chkActivo.Checked =
+                Convert.ToString(fila.Cells["Estado"].Value) == "Activo";
+
+            txtContrasena.Clear();
+        }
+
+        private bool ValidarCampos()
+        {
+            if (string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtUsuario.Text) ||
+                string.IsNullOrWhiteSpace(txtContrasena.Text))
+            {
+                MessageBox.Show("Complete el nombre, usuario y contraseña.");
+                return false;
+            }
+
+            if (txtContrasena.Text.Trim().Length < 8)
+            {
+                MessageBox.Show("La contraseña debe tener al menos 8 caracteres.");
+                return false;
+            }
+
+            if (cmbRol.SelectedIndex < 0)
+            {
+                MessageBox.Show("Seleccione un rol.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void LimpiarCampos()
+        {
+            txtNombre.Clear();
+            txtUsuario.Clear();
+            txtContrasena.Clear();
+            cmbRol.SelectedIndex = 1;
+            chkActivo.Checked = true;
+            tabla.ClearSelection();
+            txtNombre.Focus();
+        }
+    }
+}
+
+
+

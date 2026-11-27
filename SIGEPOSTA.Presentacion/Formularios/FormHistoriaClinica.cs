@@ -1,0 +1,764 @@
+﻿
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+using SIGEPOSTA.Entidades.Clinica;
+using SIGEPOSTA.Datos.Repositorios;
+using SIGEPOSTA.Negocio.Servicios;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormHistoriaClinica : Form
+    {
+        private readonly BindingList<HistoriaVista> historias = new();
+private readonly HistoriaClinicaServicio servicioHistorias =
+    new HistoriaClinicaServicio(new HistoriaClinicaRepositorio());
+
+private readonly PacienteRepositorio repositorioPacientes = new();
+
+
+        private CampoInventario txtDni = new();
+        private CampoInventario txtPaciente = new();
+        private CampoInventario txtGrupoSanguineo = new();
+        private CampoInventario txtAlergias = new();
+        private CampoInventario txtAntecedentesPersonales = new();
+        private CampoInventario txtAntecedentesFamiliares = new();
+        private CampoInventario txtObservaciones = new();
+
+        private DateTimePicker dtpFechaRegistro = new();
+        private DataGridView dgvHistorias = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormHistoriaClinica()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+            Load += (s, e) => CargarHistorias();
+            txtDni.Leave += (s, e) => BuscarPaciente();
+        }
+
+        // ═══════════════════════ INTERFAZ ═══════════════════════
+
+        private void ConstruirFormulario()
+{
+    Text = "SIGEPOSTA - Historias clínicas";
+    Size = new Size(1440, 900);
+    MinimumSize = new Size(1200, 780);
+    StartPosition = FormStartPosition.CenterScreen;
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = new Font("Segoe UI", 9.5F);
+
+    Panel encabezado = new Panel
+    {
+        Dock = DockStyle.Top,
+        Height = 105,
+        BackColor = TemaSIGEPOSTA.VerdeOscuro
+    };
+
+    encabezado.Controls.Add(new Label
+    {
+        Text = "GESTIÓN DE HISTORIAS CLÍNICAS",
+        ForeColor = Color.White,
+        BackColor = Color.Transparent,
+        Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+        Location = new Point(32, 17),
+        AutoSize = true
+    });
+
+    encabezado.Controls.Add(new Label
+    {
+        Text = "Registro y consulta de información clínica de los pacientes",
+        ForeColor = Color.FromArgb(205, 230, 216),
+        BackColor = Color.Transparent,
+        Font = new Font("Segoe UI", 10F),
+        Location = new Point(35, 62),
+        AutoSize = true
+    });
+
+    Panel cuerpo = new Panel
+    {
+        Dock = DockStyle.Fill,
+        AutoScroll = true,
+        Padding = new Padding(30, 25, 30, 25),
+        BackColor = TemaSIGEPOSTA.Fondo
+    };
+
+    TableLayoutPanel columna = new TableLayoutPanel
+    {
+        Dock = DockStyle.Top,
+        AutoSize = true,
+        AutoSizeMode = AutoSizeMode.GrowAndShrink,
+        ColumnCount = 1,
+        BackColor = TemaSIGEPOSTA.Fondo
+    };
+
+    columna.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+    columna.Controls.Add(CrearGrupoPaciente());
+    columna.Controls.Add(CrearGrupoAntecedentes());
+    columna.Controls.Add(CrearBotonera());
+    columna.Controls.Add(CrearGrupoTabla());
+
+    cuerpo.Controls.Add(columna);
+    Controls.Add(cuerpo);
+    Controls.Add(encabezado);
+}
+
+        // ═══════════════════════ GRUPO PACIENTE ═══════════════════════
+
+        private GroupBox CrearGrupoPaciente()
+{
+    GroupBox grupo = CrearGrupo("IDENTIFICACIÓN DEL PACIENTE", 125);
+    TableLayoutPanel rejilla = CrearRejilla(6, 1);
+
+    txtDni = NuevoCampo();
+    txtPaciente = NuevoCampo();
+    txtGrupoSanguineo = NuevoCampo();
+
+    AgregarPar(rejilla, "DNI:", txtDni, 0, 0);
+    AgregarPar(rejilla, "Paciente:", txtPaciente, 2, 0);
+    AgregarPar(rejilla, "Grupo sanguíneo:", txtGrupoSanguineo, 4, 0);
+
+    grupo.Controls.Add(rejilla);
+    return grupo;
+}
+
+        // ═══════════════════════ GRUPO INFORMACIÓN CLÍNICA ═══════════════════════
+
+        private GroupBox CrearGrupoAntecedentes()
+{
+    GroupBox grupo = CrearGrupo(
+        "INFORMACIÓN CLÍNICA Y ANTECEDENTES MÉDICOS", 390);
+
+    TableLayoutPanel rejilla = new TableLayoutPanel
+    {
+        Dock = DockStyle.Fill,
+        ColumnCount = 4,
+        RowCount = 4,
+        BackColor = Color.White,
+        Padding = new Padding(12)
+    };
+
+    rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 175));
+    rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+    rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 185));
+    rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
+
+    rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));
+    rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));
+    rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));
+    rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+
+    txtAlergias = NuevaArea();
+    txtAntecedentesPersonales = NuevaArea();
+    txtAntecedentesFamiliares = NuevaArea();
+    txtObservaciones = NuevaArea();
+
+    dtpFechaRegistro = new DateTimePicker
+    {
+        Format = DateTimePickerFormat.Short,
+        MaxDate = DateTime.Today,
+        Dock = DockStyle.Fill,
+        Font = new Font("Segoe UI", 9.5F),
+        Margin = new Padding(3, 9, 12, 8)
+    };
+
+    AgregarPar(rejilla, "Alergias:", txtAlergias, 0, 0);
+    AgregarPar(rejilla, "Antecedentes personales:",
+        txtAntecedentesPersonales, 2, 0);
+
+    AgregarPar(rejilla, "Antecedentes familiares:",
+        txtAntecedentesFamiliares, 0, 1);
+    AgregarPar(rejilla, "Observaciones:",
+        txtObservaciones, 2, 1);
+
+    AgregarPar(rejilla, "Fecha de registro:",
+        dtpFechaRegistro, 0, 2);
+
+    grupo.Controls.Add(rejilla);
+    return grupo;
+}
+
+        // ═══════════════════════ BOTONERA ═══════════════════════
+
+        private Control CrearBotonera()
+{
+    Panel contenedor = new Panel
+    {
+        Dock = DockStyle.Top,
+        Height = 72,
+        BackColor = TemaSIGEPOSTA.Fondo,
+        Margin = new Padding(0, 0, 0, 12)
+    };
+
+    FlowLayoutPanel fila = new FlowLayoutPanel
+    {
+        AutoSize = true,
+        FlowDirection = FlowDirection.LeftToRight,
+        WrapContents = false,
+        BackColor = Color.Transparent,
+        Padding = new Padding(0, 8, 0, 4)
+    };
+
+    Button btnRegistrar = NuevoBoton("REGISTRAR", TipoBoton.Primario);
+    btnRegistrar.Click += (s, e) => Registrar();
+
+    Button btnActualizar = NuevoBoton("ACTUALIZAR", TipoBoton.Primario);
+    btnActualizar.Click += (s, e) => Actualizar();
+
+    Button btnEliminar = NuevoBoton("ELIMINAR", TipoBoton.Peligro);
+    btnEliminar.Click += (s, e) => Eliminar();
+
+    Button btnLimpiar = NuevoBoton("LIMPIAR", TipoBoton.Secundario);
+    btnLimpiar.Click += (s, e) => Limpiar();
+
+    fila.Controls.AddRange(new Control[]
+    {
+        btnRegistrar, btnActualizar, btnEliminar, btnLimpiar
+    });
+
+    contenedor.Controls.Add(fila);
+
+    Action centrar = () =>
+    {
+        fila.Location = new Point(
+            Math.Max(0, (contenedor.ClientSize.Width - fila.Width) / 2), 5);
+    };
+
+    contenedor.Resize += (s, e) => centrar();
+    contenedor.PerformLayout();
+    centrar();
+
+    return contenedor;
+}
+        // ═══════════════════════ TABLA ═══════════════════════
+
+        private GroupBox CrearGrupoTabla()
+{
+    GroupBox grupo = CrearGrupo("HISTORIAS CLÍNICAS REGISTRADAS", 300);
+
+    dgvHistorias = new DataGridView
+    {
+        Dock = DockStyle.Fill,
+        ReadOnly = true,
+        AllowUserToAddRows = false,
+        AllowUserToDeleteRows = false,
+        AutoGenerateColumns = false,
+        AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+        SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+        MultiSelect = false,
+        RowHeadersVisible = false,
+        BackgroundColor = Color.White,
+        BorderStyle = BorderStyle.None,
+        CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal,
+        Margin = new Padding(8)
+    };
+
+    dgvHistorias.SelectionChanged += (s, e) => Seleccionar();
+    grupo.Controls.Add(dgvHistorias);
+    return grupo;
+}
+
+        // ═══════════════════════ AYUDAS DE DISEÑO ═══════════════════════
+
+        private GroupBox CrearGrupo(string titulo, int alto)
+{
+    return new GroupBox
+    {
+        Text = titulo,
+        Dock = DockStyle.Top,
+        Height = alto,
+        BackColor = Color.White,
+        ForeColor = TemaSIGEPOSTA.VerdeOscuro,
+        Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+        Padding = new Padding(15, 18, 15, 12),
+        Margin = new Padding(0, 0, 0, 14)
+    };
+}
+
+        private TableLayoutPanel CrearRejilla(int columnas, int filas)
+        {
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = columnas,
+                RowCount = filas,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            for (int i = 0; i < columnas; i++)
+            {
+                if (i % 2 == 0)
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(SizeType.AutoSize));
+                else
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(
+                            SizeType.Percent,
+                            100f / (columnas / 2)));
+            }
+
+            for (int i = 0; i < filas; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 46));
+            }
+
+            return rejilla;
+        }
+
+        private void AgregarPar(
+    TableLayoutPanel rejilla,
+    string texto,
+    Control campo,
+    int columna,
+    int fila)
+{
+    Label etiqueta = NuevaEtiqueta(texto);
+    etiqueta.Dock = DockStyle.Fill;
+    etiqueta.TextAlign = ContentAlignment.MiddleLeft;
+    etiqueta.Margin = new Padding(0, 4, 8, 4);
+
+    campo.Dock = DockStyle.Fill;
+    campo.Margin = new Padding(2, 7, 12, 7);
+
+    rejilla.Controls.Add(etiqueta, columna, fila);
+    rejilla.Controls.Add(campo, columna + 1, fila);
+}
+
+        private Label NuevaEtiqueta(string texto)
+{
+    return new Label
+    {
+        Text = texto,
+        AutoSize = false,
+        Dock = DockStyle.Fill,
+        TextAlign = ContentAlignment.MiddleLeft,
+        Margin = new Padding(0, 4, 8, 4),
+        ForeColor = TemaSIGEPOSTA.Texto,
+        Font = new Font("Segoe UI", 9.2F, FontStyle.Regular)
+    };
+}
+
+        private CampoInventario NuevoCampo()
+{
+    return new CampoInventario
+    {
+        Dock = DockStyle.Fill,
+        Height = 42,
+        Margin = new Padding(2, 7, 12, 7)
+    };
+}
+
+        private CampoInventario NuevaArea()
+{
+    CampoInventario campo = new CampoInventario
+    {
+        Dock = DockStyle.Fill,
+        Height = 90,
+        Margin = new Padding(2, 5, 12, 5)
+    };
+
+    campo.ConfigurarMultilinea(true, ScrollBars.Vertical);
+    return campo;
+}
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(0, 0, 12, 0)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        // ═══════════════════════ CONFIGURACIÓN TABLA ═══════════════════════
+
+        private void ConfigurarTabla()
+        {
+            TemaSIGEPOSTA.EstilizarTabla(dgvHistorias);
+
+            Columna("Dni", "DNI");
+            Columna("Paciente", "Paciente");
+            Columna("GrupoSanguineo", "Grupo sanguíneo");
+            Columna("FechaRegistro", "Fecha de registro");
+
+            dgvHistorias.Columns["FechaRegistro"]!
+                .DefaultCellStyle.Format = "dd/MM/yyyy";
+
+            dgvHistorias.DataSource = historias;
+        }
+
+        private void Columna(string propiedad, string titulo)
+        {
+            dgvHistorias.Columns.Add(
+                new DataGridViewTextBoxColumn
+                {
+                    Name = propiedad,
+                    DataPropertyName = propiedad,
+                    HeaderText = titulo
+                });
+        }
+
+
+// ═══════════════════════ ESTILOS ═══════════════════════
+
+private void AplicarEstilos()
+{
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = new Font("Segoe UI", 9.5F);
+
+    AplicarEstilosRecursivos(this);
+    TemaSIGEPOSTA.EstilizarFecha(dtpFechaRegistro);
+    TemaSIGEPOSTA.EstilizarTabla(dgvHistorias);
+}
+
+private void AplicarEstilosRecursivos(Control control)
+{
+    if (control is GroupBox grupo)
+        TemaSIGEPOSTA.EstilizarGrupo(grupo);
+    else if (control is Label etiqueta &&
+             etiqueta.Parent is not Panel encabezado)
+        TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+    else if (control is Button boton)
+    {
+        TipoBoton tipo = boton.Text.Contains("ELIMINAR")
+            ? TipoBoton.Peligro
+            : boton.Text.Contains("LIMPIAR")
+                ? TipoBoton.Secundario
+                : TipoBoton.Primario;
+
+        TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+    }
+
+    foreach (Control hijo in control.Controls)
+        AplicarEstilosRecursivos(hijo);
+}
+
+
+        // ═══════════════════════ LÓGICA ═══════════════════════
+
+        private void BuscarPaciente()
+        {
+            string dni = txtDni.Text.Trim();
+
+            if (dni.Length != 8 || !dni.All(char.IsDigit))
+                return;
+
+            try
+            {
+                var paciente = repositorioPacientes.ObtenerTodos()
+                    .FirstOrDefault(p =>
+                        p.NumeroDocumento.Trim() == dni);
+
+                if (paciente == null)
+                {
+                    txtPaciente.Text = "";
+                    MessageBox.Show("No existe un paciente registrado con ese DNI.");
+                    return;
+                }
+
+                txtPaciente.Text =
+                    paciente.NombreCompleto;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "No se pudo buscar al paciente: " + ex.Message);
+            }
+        }
+
+        private void CargarHistorias()
+        {
+            try
+            {
+                var pacientes = repositorioPacientes.ObtenerTodos();
+
+                historias.Clear();
+
+                foreach (var historia in servicioHistorias.ObtenerTodos())
+                {
+                    var paciente = pacientes.FirstOrDefault(
+                        p => p.IdPaciente == historia.IdPaciente);
+
+                    historias.Add(new HistoriaVista
+                    {
+                        IdHistoriaClinica = historia.IdHistoriaClinica,
+                        IdPaciente = historia.IdPaciente,
+                        Dni = paciente?.NumeroDocumento?.Trim() ?? "",
+                        Paciente = paciente == null
+                            ? ""
+                            : paciente.NombreCompleto,
+                        GrupoSanguineo = historia.GrupoSanguineo,
+                        Alergias = historia.Alergias,
+                        AntecedentesPersonales = historia.AntecedentesPersonales,
+                        AntecedentesFamiliares = historia.AntecedentesFamiliares,
+                        Observaciones = historia.Observaciones,
+                        FechaRegistro = historia.FechaApertura
+                    });
+                }
+
+                dgvHistorias.ClearSelection();
+                indiceSeleccionado = -1;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Error al cargar las historias clínicas: " + ex.Message);
+            }
+        }
+
+        private HistoriaClinica ConvertirEntidad(
+            HistoriaVista vista, int idPaciente)
+        {
+            return new HistoriaClinica
+            {
+                IdHistoriaClinica = vista.IdHistoriaClinica,
+                IdPaciente = idPaciente,
+                GrupoSanguineo = vista.GrupoSanguineo,
+                Alergias = vista.Alergias,
+                AntecedentesPersonales = vista.AntecedentesPersonales,
+                AntecedentesFamiliares = vista.AntecedentesFamiliares,
+                Observaciones = vista.Observaciones,
+                FechaApertura = vista.FechaRegistro,
+                Estado = true
+            };
+        }
+        private void Registrar()
+        {
+            if (!Validar())
+                return;
+
+            try
+            {
+                string dni = txtDni.Text.Trim();
+
+                var paciente = repositorioPacientes.ObtenerTodos()
+                    .FirstOrDefault(p =>
+                        p.NumeroDocumento.Trim() == dni);
+
+                if (paciente == null)
+                {
+                    MessageBox.Show("Primero debe registrar al paciente.");
+                    return;
+                }
+
+                if (historias.Any(h => h.IdPaciente == paciente.IdPaciente))
+                {
+                    MessageBox.Show(
+                        "Este paciente ya tiene una historia clínica registrada.");
+                    return;
+                }
+
+                HistoriaVista vista = ObtenerDatos();
+                servicioHistorias.Registrar(
+                    ConvertirEntidad(vista, paciente.IdPaciente));
+
+                MessageBox.Show("Historia clínica registrada correctamente.");
+
+                CargarHistorias();
+                Limpiar();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "No se pudo registrar la historia clínica: " + ex.Message);
+            }
+        }
+
+        private void Actualizar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= historias.Count)
+            {
+                MessageBox.Show("Seleccione una historia clínica.");
+                return;
+            }
+
+            if (!Validar())
+                return;
+
+            try
+            {
+                string dni = txtDni.Text.Trim();
+
+                var paciente = repositorioPacientes.ObtenerTodos()
+                    .FirstOrDefault(p =>
+                        p.NumeroDocumento.Trim() == dni);
+
+                if (paciente == null)
+                {
+                    MessageBox.Show("No existe el paciente indicado.");
+                    return;
+                }
+
+                HistoriaVista anterior = historias[indiceSeleccionado];
+
+                if (historias.Any(h =>
+                    h.IdPaciente == paciente.IdPaciente &&
+                    h.IdHistoriaClinica != anterior.IdHistoriaClinica))
+                {
+                    MessageBox.Show(
+                        "El paciente ya tiene otra historia clínica.");
+                    return;
+                }
+
+                HistoriaVista vista = ObtenerDatos();
+                vista.IdHistoriaClinica = anterior.IdHistoriaClinica;
+
+                servicioHistorias.Actualizar(
+                    ConvertirEntidad(vista, paciente.IdPaciente));
+
+                MessageBox.Show("Historia clínica actualizada correctamente.");
+
+                CargarHistorias();
+                Limpiar();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "No se pudo actualizar la historia clínica: " + ex.Message);
+            }
+        }
+
+        private void Eliminar()
+        {
+            if (indiceSeleccionado < 0 ||
+                indiceSeleccionado >= historias.Count)
+            {
+                MessageBox.Show("Seleccione una historia clínica.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Está seguro de eliminar esta historia clínica?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+
+            if (respuesta != DialogResult.Yes)
+                return;
+
+            try
+            {
+                int id = historias[indiceSeleccionado].IdHistoriaClinica;
+
+                servicioHistorias.Eliminar(id);
+
+                MessageBox.Show("Historia clínica eliminada correctamente.");
+
+                CargarHistorias();
+                Limpiar();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "No se pudo eliminar la historia clínica: " + ex.Message);
+            }
+        }
+
+        private void Seleccionar()
+        {
+            if (dgvHistorias.CurrentRow?.DataBoundItem
+                is not HistoriaVista h)
+                return;
+
+            indiceSeleccionado = historias.IndexOf(h);
+
+            txtDni.Text = h.Dni;
+            txtPaciente.Text = h.Paciente;
+            txtGrupoSanguineo.Text = h.GrupoSanguineo;
+            txtAlergias.Text = h.Alergias;
+            txtAntecedentesPersonales.Text = h.AntecedentesPersonales;
+            txtAntecedentesFamiliares.Text = h.AntecedentesFamiliares;
+            txtObservaciones.Text = h.Observaciones;
+            dtpFechaRegistro.Value = h.FechaRegistro.Date;
+        }
+
+        private bool Validar()
+        {
+            string dni = txtDni.Text.Trim();
+
+            if (dni.Length != 8 || !dni.All(char.IsDigit))
+            {
+                MessageBox.Show("El DNI debe contener exactamente 8 números.");
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(txtPaciente.Text))
+            {
+                MessageBox.Show(
+                    "Ingrese un DNI correspondiente a un paciente registrado.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private HistoriaVista ObtenerDatos()
+        {
+            return new HistoriaVista
+            {
+                Dni = txtDni.Text.Trim(),
+                Paciente = txtPaciente.Text.Trim(),
+                GrupoSanguineo = txtGrupoSanguineo.Text.Trim(),
+                Alergias = txtAlergias.Text.Trim(),
+                AntecedentesPersonales = txtAntecedentesPersonales.Text.Trim(),
+                AntecedentesFamiliares = txtAntecedentesFamiliares.Text.Trim(),
+                Observaciones = txtObservaciones.Text.Trim(),
+                FechaRegistro = dtpFechaRegistro.Value.Date
+            };
+        }
+
+        private void Limpiar()
+        {
+            indiceSeleccionado = -1;
+
+            txtDni.Clear();
+            txtPaciente.Clear();
+            txtGrupoSanguineo.Clear();
+            txtAlergias.Clear();
+            txtAntecedentesPersonales.Clear();
+            txtAntecedentesFamiliares.Clear();
+            txtObservaciones.Clear();
+
+            dtpFechaRegistro.Value = DateTime.Today;
+            dgvHistorias.ClearSelection();
+        }
+
+        // ═══════════════════════ MODELO ═══════════════════════
+
+        private class HistoriaVista
+        {
+            public int IdHistoriaClinica { get; set; }
+            public int IdPaciente { get; set; }
+            public string Dni { get; set; } = "";
+            public string Paciente { get; set; } = "";
+            public string GrupoSanguineo { get; set; } = "";
+            public string Alergias { get; set; } = "";
+            public string AntecedentesPersonales { get; set; } = "";
+            public string AntecedentesFamiliares { get; set; } = "";
+            public string Observaciones { get; set; } = "";
+            public DateTime FechaRegistro { get; set; }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+

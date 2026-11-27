@@ -1,0 +1,376 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormConfiguracion : Form
+    {
+        private CampoInventario txtNombre = new();
+        private CampoInventario txtCodigo = new();
+        private CampoInventario txtDireccion = new();
+        private CampoInventario txtTelefono = new();
+        private CampoInventario txtCorreo = new();
+        private CampoInventario txtResponsable = new();
+
+        private ComboBox cmbCategoria = new();
+        private Label lblEstado = new();
+
+        public FormConfiguracion()
+        {
+            ConstruirFormulario();
+            AplicarEstilos();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Configuración institucional";
+            Size = new Size(1200, 780);
+            MinimumSize = new Size(950, 680);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "CONFIGURACIÓN INSTITUCIONAL",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Administración de la información general del establecimiento de salud",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 25, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel columna = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0)
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            columna.Controls.Add(CrearGrupoDatos());
+            columna.Controls.Add(CrearBotonera());
+
+            cuerpo.Controls.Add(columna);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        private GroupBox CrearGrupoDatos()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Datos del establecimiento de salud",
+                Dock = DockStyle.Top,
+                Height = 390,
+                Margin = new Padding(0, 0, 0, 15),
+                Padding = new Padding(18, 15, 18, 15),
+                Font = TemaSIGEPOSTA.Fuente,
+                ForeColor = TemaSIGEPOSTA.VerdeOscuro,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 4,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(8)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 155));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 55));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 145));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 45));
+
+            for (int i = 0; i < 4; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 72));
+            }
+
+            txtNombre = NuevoCampo();
+            txtNombre.Text = "Posta de Salud de Mollepata";
+
+            txtCodigo = NuevoCampo();
+            txtDireccion = NuevoCampo();
+            txtTelefono = NuevoCampo();
+            txtCorreo = NuevoCampo();
+            txtResponsable = NuevoCampo();
+
+            cmbCategoria = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = TemaSIGEPOSTA.Fuente,
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+
+            cmbCategoria.Items.AddRange(new object[]
+            {
+                "I-1",
+                "I-2",
+                "I-3",
+                "I-4"
+            });
+
+            cmbCategoria.SelectedIndex = 0;
+
+            AgregarPar(rejilla, "Nombre:", txtNombre, 0, 0);
+            AgregarPar(rejilla, "Código:", txtCodigo, 2, 0);
+
+            AgregarPar(rejilla, "Dirección:", txtDireccion, 0, 1);
+            AgregarPar(rejilla, "Teléfono:", txtTelefono, 2, 1);
+
+            AgregarPar(rejilla, "Correo institucional:", txtCorreo, 0, 2);
+            AgregarPar(rejilla, "Responsable:", txtResponsable, 2, 2);
+
+            AgregarPar(rejilla, "Categoría:", cmbCategoria, 0, 3);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        private Control CrearBotonera()
+        {
+            Panel contenedor = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 105,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Margin = new Padding(0)
+            };
+
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+
+            Button btnGuardar = NuevoBoton(
+                "GUARDAR CONFIGURACIÓN", TipoBoton.Primario);
+
+            btnGuardar.Width = 230;
+            btnGuardar.Click += (s, e) => GuardarConfiguracion();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+
+            btnLimpiar.Width = 140;
+            btnLimpiar.Click += (s, e) => LimpiarCampos();
+
+            fila.Controls.Add(btnGuardar);
+            fila.Controls.Add(btnLimpiar);
+
+            contenedor.Controls.Add(fila);
+
+            Action centrar = () =>
+            {
+                fila.Left = Math.Max(0, (contenedor.ClientSize.Width - fila.Width) / 2);
+                fila.Top = 8;
+            };
+
+            contenedor.SizeChanged += (s, e) => centrar();
+            fila.SizeChanged += (s, e) => centrar();
+
+            lblEstado = new Label
+            {
+                Text = "Configuración pendiente de guardar.",
+                Dock = DockStyle.Bottom,
+                Height = 35,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = TemaSIGEPOSTA.TextoSecundario,
+                Font = TemaSIGEPOSTA.Fuente
+            };
+
+            contenedor.Controls.Add(lblEstado);
+            centrar();
+
+            return contenedor;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = new Label
+            {
+                Text = texto,
+                AutoSize = false,
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                Margin = new Padding(0, 0, 8, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 12, 18, 12);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private CampoInventario NuevoCampo()
+        {
+            return new CampoInventario
+            {
+                Font = TemaSIGEPOSTA.Fuente,
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(8, 0, 8, 0),
+                Height = 38,
+                Cursor = Cursors.Hand
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        private void AplicarEstilos()
+        {
+            foreach (GroupBox grupo in TodosLosControles<GroupBox>(this))
+            {
+                grupo.Font = TemaSIGEPOSTA.Fuente;
+                grupo.ForeColor = TemaSIGEPOSTA.VerdeOscuro;
+                grupo.BackColor = TemaSIGEPOSTA.Blanco;
+            }
+
+            TemaSIGEPOSTA.EstilizarComboBox(cmbCategoria);
+        }
+
+        private static System.Collections.Generic.IEnumerable<T>
+            TodosLosControles<T>(Control raiz) where T : Control
+        {
+            foreach (Control control in raiz.Controls)
+            {
+                if (control is T tipado)
+                    yield return tipado;
+
+                foreach (T hijo in TodosLosControles<T>(control))
+                    yield return hijo;
+            }
+        }
+
+        private void GuardarConfiguracion()
+        {
+            if (string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtDireccion.Text))
+            {
+                MessageBox.Show(
+                    "Ingrese como mínimo el nombre y la dirección.",
+                    "Validación",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+
+                return;
+            }
+
+            MessageBox.Show(
+                "Los datos fueron validados. Su almacenamiento permanente se implementará al conectar SQL Server.",
+                "SIGEPOSTA",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+
+            lblEstado.Text =
+                "Datos validados; pendientes de conexión con SQL Server.";
+        }
+
+        private void LimpiarCampos()
+        {
+            txtCodigo.Clear();
+            txtDireccion.Clear();
+            txtTelefono.Clear();
+            txtCorreo.Clear();
+            txtResponsable.Clear();
+
+            cmbCategoria.SelectedIndex = 0;
+
+            lblEstado.Text = "Formulario limpiado.";
+        }
+    }
+}
+
+
+
+
+

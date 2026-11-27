@@ -1,0 +1,463 @@
+using System;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormReportes : Form
+    {
+        private ComboBox cmbReporte = new();
+        private DateTimePicker dtpDesde = new();
+        private DateTimePicker dtpHasta = new();
+        private DataGridView dgvReporte = new();
+        private Label lblResumen = new();
+
+        public FormReportes()
+        {
+            ConstruirFormulario();
+            AplicarEstilos();
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Reportes";
+            Size = new Size(1250, 820);
+            MinimumSize = new Size(1050, 700);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            Panel encabezado = new Panel
+{
+    Dock = DockStyle.Top,
+    Height = 110,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Padding = new Padding(30, 12, 30, 12)
+};
+
+TableLayoutPanel contenidoEncabezado = new TableLayoutPanel
+{
+    Dock = DockStyle.Fill,
+    ColumnCount = 1,
+    RowCount = 2,
+    BackColor = TemaSIGEPOSTA.VerdeOscuro,
+    Margin = new Padding(0),
+    Padding = new Padding(0)
+};
+
+contenidoEncabezado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 58));
+contenidoEncabezado.RowStyles.Add(new RowStyle(SizeType.Percent, 42));
+
+Label lblTituloEncabezado = new Label
+{
+    Text = "REPORTES DEL ESTABLECIMIENTO",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.White,
+    Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+    TextAlign = ContentAlignment.BottomLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(0)
+};
+
+Label lblSubtituloEncabezado = new Label
+{
+    Text = "Consulta y generación de reportes administrativos y clínicos",
+    Dock = DockStyle.Fill,
+    ForeColor = Color.FromArgb(220, 235, 225),
+    Font = new Font("Segoe UI", 10F, FontStyle.Regular),
+    TextAlign = ContentAlignment.MiddleLeft,
+    BackColor = Color.Transparent,
+    Margin = new Padding(2, 0, 0, 0)
+};
+
+contenidoEncabezado.Controls.Add(lblTituloEncabezado, 0, 0);
+contenidoEncabezado.Controls.Add(lblSubtituloEncabezado, 0, 1);
+encabezado.Controls.Add(contenidoEncabezado);
+
+            Panel cuerpo = new Panel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(28, 20, 28, 20),
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            TableLayoutPanel contenido = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 3,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            contenido.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 165));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            contenido.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 75));
+
+            contenido.Controls.Add(CrearGrupoFiltros(), 0, 0);
+            contenido.Controls.Add(CrearGrupoResultados(), 0, 1);
+            contenido.Controls.Add(CrearPie(), 0, 2);
+
+            cuerpo.Controls.Add(contenido);
+
+            Controls.Add(cuerpo);
+            Controls.Add(encabezado);
+        }
+
+        private GroupBox CrearGrupoFiltros()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Filtros del reporte",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(16, 12, 16, 12),
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 2,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 40));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
+
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
+            rejilla.RowStyles.Add(new RowStyle(SizeType.Absolute, 55));
+
+            cmbReporte = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            cmbReporte.Items.AddRange(new object[]
+            {
+                "Reporte de pacientes",
+                "Reporte de personal de salud",
+                "Reporte de citas médicas",
+                "Reporte de atenciones médicas",
+                "Reporte de diagnósticos",
+                "Reporte de medicamentos",
+                "Reporte de movimientos de inventario"
+            });
+
+            cmbReporte.SelectedIndex = 0;
+
+            dtpDesde = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            dtpHasta = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 18, 6)
+            };
+
+            AgregarPar(rejilla, "Tipo de reporte:", cmbReporte, 0);
+            AgregarPar(rejilla, "Desde:", dtpDesde, 2);
+            AgregarPar(rejilla, "Hasta:", dtpHasta, 4);
+
+            Button btnConsultar = NuevoBoton(
+                "CONSULTAR", TipoBoton.Primario);
+
+            btnConsultar.Click += (s, e) => Consultar();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+
+            btnLimpiar.Click += (s, e) => Limpiar();
+
+            FlowLayoutPanel botones = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 5, 0, 0)
+            };
+
+            botones.Controls.Add(btnConsultar);
+            botones.Controls.Add(btnLimpiar);
+
+            Panel centrado = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            centrado.Controls.Add(botones);
+
+            Action centrar = () =>
+            {
+                botones.Left = Math.Max(
+                    0, (centrado.ClientSize.Width - botones.Width) / 2);
+            };
+
+            centrado.Resize += (s, e) => centrar();
+            botones.SizeChanged += (s, e) => centrar();
+
+            rejilla.Controls.Add(centrado, 0, 1);
+            rejilla.SetColumnSpan(centrado, 6);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna)
+        {
+            Label etiqueta = new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            rejilla.Controls.Add(etiqueta, columna, 0);
+            rejilla.Controls.Add(campo, columna + 1, 0);
+        }
+
+        private GroupBox CrearGrupoResultados()
+        {
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Resultados del reporte",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(12),
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            dgvReporte = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = TemaSIGEPOSTA.Blanco,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = true,
+                BorderStyle = BorderStyle.None,
+                Margin = new Padding(5)
+            };
+
+            grupo.Controls.Add(dgvReporte);
+
+            return grupo;
+        }
+
+        private Control CrearPie()
+        {
+            TableLayoutPanel pie = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 2,
+                RowCount = 1,
+                BackColor = TemaSIGEPOSTA.Fondo
+            };
+
+            pie.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 75));
+
+            pie.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 25));
+
+            lblResumen = new Label
+            {
+                Text = "Sin información para mostrar.",
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleLeft,
+                ForeColor = TemaSIGEPOSTA.VerdeOscuro,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta,
+                Padding = new Padding(5)
+            };
+
+            Button btnExportar = NuevoBoton(
+                "EXPORTAR CSV", TipoBoton.Primario);
+
+            btnExportar.Anchor = AnchorStyles.Right;
+            btnExportar.Click += (s, e) => ExportarCSV();
+
+            pie.Controls.Add(lblResumen, 0, 0);
+            pie.Controls.Add(btnExportar, 1, 0);
+
+            return pie;
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(6, 5, 6, 5)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        private void AplicarEstilos()
+        {
+            BackColor = TemaSIGEPOSTA.Fondo;
+            Font = TemaSIGEPOSTA.Fuente;
+
+            AplicarEstilosRecursivos(this);
+
+            TemaSIGEPOSTA.EstilizarComboBox(cmbReporte);
+            TemaSIGEPOSTA.EstilizarFecha(dtpDesde);
+            TemaSIGEPOSTA.EstilizarFecha(dtpHasta);
+            TemaSIGEPOSTA.EstilizarTabla(dgvReporte);
+        }
+
+        private void AplicarEstilosRecursivos(Control control)
+        {
+            if (control is GroupBox grupo)
+            {
+                TemaSIGEPOSTA.EstilizarGrupo(grupo);
+            }
+            else if (control is ComboBox combo)
+            {
+                TemaSIGEPOSTA.EstilizarComboBox(combo);
+            }
+            else if (control is Label etiqueta)
+            {
+                TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+            }
+
+            foreach (Control hijo in control.Controls)
+            {
+                AplicarEstilosRecursivos(hijo);
+            }
+        }
+
+        private void Consultar()
+        {
+            if (dtpDesde.Value.Date > dtpHasta.Value.Date)
+            {
+                MessageBox.Show(
+                    "La fecha inicial no puede ser posterior a la fecha final.");
+                return;
+            }
+
+            dgvReporte.DataSource = null;
+
+            lblResumen.Text = "Reporte seleccionado: " + cmbReporte.Text +
+                              " | Periodo: " +
+                              dtpDesde.Value.ToShortDateString() + " - " +
+                              dtpHasta.Value.ToShortDateString();
+
+            MessageBox.Show(
+                "La estructura del reporte está preparada. " +
+                "Los resultados se conectarán con SQL Server posteriormente."
+            );
+        }
+
+        private void ExportarCSV()
+        {
+            if (dgvReporte.Columns.Count == 0 ||
+                dgvReporte.Rows.Count == 0)
+            {
+                MessageBox.Show("No existen resultados para exportar.");
+                return;
+            }
+
+            using SaveFileDialog guardar = new SaveFileDialog
+            {
+                Filter = "Archivo CSV (*.csv)|*.csv",
+                FileName = "Reporte_SIGEPOSTA.csv",
+                Title = "Guardar reporte"
+            };
+
+            if (guardar.ShowDialog() != DialogResult.OK)
+                return;
+
+            try
+            {
+                using System.IO.StreamWriter escritor =
+                    new System.IO.StreamWriter(
+                        guardar.FileName,
+                        false,
+                        System.Text.Encoding.UTF8);
+
+                string encabezados = string.Join(";",
+                    dgvReporte.Columns.Cast<DataGridViewColumn>()
+                    .Select(c => EscaparCSV(c.HeaderText)));
+
+                escritor.WriteLine(encabezados);
+
+                foreach (DataGridViewRow fila in dgvReporte.Rows)
+                {
+                    if (fila.IsNewRow)
+                        continue;
+
+                    string valores = string.Join(";",
+                        fila.Cells.Cast<DataGridViewCell>()
+                        .Select(c => EscaparCSV(c.Value?.ToString() ?? "")));
+
+                    escritor.WriteLine(valores);
+                }
+
+                MessageBox.Show("Reporte exportado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error al exportar: " + ex.Message);
+            }
+        }
+
+        private string EscaparCSV(string valor)
+        {
+            return "\"" + valor.Replace("\"", "\"\"") + "\"";
+        }
+
+        private void Limpiar()
+        {
+            cmbReporte.SelectedIndex = 0;
+            dtpDesde.Value = DateTime.Today;
+            dtpHasta.Value = DateTime.Today;
+            dgvReporte.DataSource = null;
+            lblResumen.Text = "Sin información para mostrar.";
+        }
+    }
+}
+
+
+
+
+

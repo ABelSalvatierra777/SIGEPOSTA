@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SIGEPOSTA.Negocio\SIGEPOSTA.Negocio.csproj" />
+    <ProjectReference Include="..\SIGEPOSTA.Entidades\SIGEPOSTA.Entidades.csproj" />
+    <ProjectReference Include="..\SIGEPOSTA.Datos\SIGEPOSTA.Datos.csproj" />
+    <ProjectReference Include="..\SIGEPOSTA.Seguridad\SIGEPOSTA.Seguridad.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SIGEPOSTA.Respaldos\SIGEPOSTA.Respaldos.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+</Project>

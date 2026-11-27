@@ -1,0 +1,1110 @@
+﻿
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Text;
+using System.Windows.Forms;
+using Microsoft.Data.SqlClient;
+using SIGEPOSTA.Datos.Infraestructura;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios;
+
+public class DashboardInicio : UserControl
+{
+    // ═══════════════════════ ESTILOS CENTRALIZADOS ═══════════════════════
+    private readonly Color verdeOscuro = TemaSIGEPOSTA.VerdeOscuro;
+    private readonly Color verde = TemaSIGEPOSTA.VerdePrincipal;
+    private readonly Color verdeClaro = TemaSIGEPOSTA.VerdeClaro;
+    private readonly Color fondo = TemaSIGEPOSTA.Fondo;
+    private readonly Color texto = TemaSIGEPOSTA.Texto;
+    private readonly Color secundario = TemaSIGEPOSTA.TextoSecundario;
+    private readonly Color azul = TemaSIGEPOSTA.Azul;
+    private readonly Color ambar = TemaSIGEPOSTA.Naranja;
+    private readonly Color rojo = TemaSIGEPOSTA.Rojo;
+
+    private readonly Font fuenteEstado = TemaSIGEPOSTA.FuenteEtiqueta;
+
+    private readonly Label lblPacientes = new();
+    private readonly Label lblCitas = new();
+    private readonly Label lblAtenciones = new();
+    private readonly Label lblAlertas = new();
+
+    private readonly GraficoAtenciones grafico = new();
+    private readonly DataGridView tablaCitas = new();
+    private readonly DataGridView tablaActividad = new();
+    private readonly FlowLayoutPanel listaAlertas = new();
+
+    private readonly Label lblEstado = new();
+
+    public DashboardInicio()
+    {
+        BackColor = TemaSIGEPOSTA.Fondo;
+        ForeColor = TemaSIGEPOSTA.Texto;
+        Font = TemaSIGEPOSTA.Fuente;
+        Dock = DockStyle.Fill;
+
+        ConstruirInterfaz();
+        CargarDatos();
+    }
+
+    // ═══════════════════════ ESTRUCTURA ═══════════════════════
+    private void ConstruirInterfaz()
+    {
+        var desplazamiento = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            BackColor = fondo,
+            Padding = new Padding(0, 0, 8, 10)
+        };
+
+        var contenido = new TableLayoutPanel
+        {
+            Dock = DockStyle.Top,
+            AutoSize = true,
+            ColumnCount = 1,
+            RowCount = 5,
+            BackColor = fondo,
+            Padding = new Padding(0, 0, 0, 12)
+        };
+
+        contenido.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        contenido.RowStyles.Add(new RowStyle(SizeType.Absolute, 82));
+        contenido.RowStyles.Add(new RowStyle(SizeType.Absolute, 136));
+        contenido.RowStyles.Add(new RowStyle(SizeType.Absolute, 285));
+        contenido.RowStyles.Add(new RowStyle(SizeType.Absolute, 285));
+        contenido.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
+
+        contenido.Controls.Add(CrearEncabezado(), 0, 0);
+        contenido.Controls.Add(CrearIndicadores(), 0, 1);
+        contenido.Controls.Add(CrearZonaGraficos(), 0, 2);
+        contenido.Controls.Add(CrearZonaListados(), 0, 3);
+
+        lblEstado.Text = "Información obtenida de SIGEPOSTA_DB";
+        lblEstado.Font = TemaSIGEPOSTA.Fuente;
+        lblEstado.ForeColor = secundario;
+        lblEstado.BackColor = fondo;
+        lblEstado.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstado.Padding = new Padding(6, 0, 0, 0);
+        lblEstado.Dock = DockStyle.Fill;
+
+        contenido.Controls.Add(lblEstado, 0, 4);
+
+        desplazamiento.Controls.Add(contenido);
+        Controls.Add(desplazamiento);
+    }
+
+    private Control CrearEncabezado()
+    {
+        var panel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            BackColor = fondo
+        };
+
+        var titulo = new Label
+        {
+            Text = "Panel de control",
+            Font = TemaSIGEPOSTA.FuenteTitulo,
+            ForeColor = verdeOscuro,
+            BackColor = fondo,
+            Location = new Point(4, 7),
+            AutoSize = true
+        };
+
+        var descripcion = new Label
+        {
+            Text = "Resumen de la gestión asistencial y administrativa",
+            Font = TemaSIGEPOSTA.Fuente,
+            ForeColor = secundario,
+            BackColor = fondo,
+            Location = new Point(6, 47),
+            AutoSize = true
+        };
+
+        string textoFecha = DateTime.Now.ToString(
+            "dddd, dd 'de' MMMM 'de' yyyy",
+            new System.Globalization.CultureInfo("es-PE"));
+
+        textoFecha = char.ToUpper(textoFecha[0]) + textoFecha.Substring(1);
+
+        var fecha = new Label
+        {
+            Text = "  " + textoFecha + "  ",
+            Font = TemaSIGEPOSTA.FuenteEtiqueta,
+            ForeColor = verdeOscuro,
+            BackColor = verdeClaro,
+            AutoSize = false,
+            Size = new Size(260, 32),
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+
+        panel.Resize += (s, e) =>
+        {
+            fecha.Location = new Point(
+                Math.Max(0, panel.Width - fecha.Width - 8), 14);
+        };
+
+        panel.Controls.Add(titulo);
+        panel.Controls.Add(descripcion);
+        panel.Controls.Add(fecha);
+
+        return panel;
+    }
+
+    // ═══════════════════════ INDICADORES ═══════════════════════
+    private Control CrearIndicadores()
+    {
+        var fila = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 4,
+            RowCount = 1,
+            BackColor = fondo,
+            Padding = new Padding(0, 2, 0, 2)
+        };
+
+        for (int i = 0; i < 4; i++)
+            fila.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 25));
+
+        fila.Controls.Add(CrearTarjeta(
+            "PACIENTES ACTIVOS", lblPacientes,
+            "Personas registradas", verde, "\uE716"), 0, 0);
+
+        fila.Controls.Add(CrearTarjeta(
+            "CITAS DE HOY", lblCitas,
+            "Agenda del día", azul, "\uE787"), 1, 0);
+
+        fila.Controls.Add(CrearTarjeta(
+            "ATENCIONES DEL MES", lblAtenciones,
+            "Atenciones registradas", ambar, "\uE8A5"), 2, 0);
+
+        fila.Controls.Add(CrearTarjeta(
+            "ALERTAS DE FARMACIA", lblAlertas,
+            "Stock bajo o vencimiento próximo", rojo, "\uE7BA"), 3, 0);
+
+        return fila;
+    }
+
+    private TarjetaRedondeada CrearTarjeta(
+        string titulo, Label valor, string detalle,
+        Color acento, string glifo)
+    {
+        var tarjeta = new TarjetaRedondeada
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(4, 3, 10, 5),
+            FondoExterior = fondo,
+            Acento = acento
+        };
+
+        var lblTitulo = new Label
+        {
+            Text = titulo,
+            Font = TemaSIGEPOSTA.FuenteEtiqueta,
+            ForeColor = secundario,
+            BackColor = Color.White,
+            Location = new Point(22, 16),
+            AutoSize = true
+        };
+
+        valor.Text = "—";
+        valor.Font = new Font("Segoe UI", 26, FontStyle.Bold);
+        valor.ForeColor = texto;
+        valor.BackColor = Color.White;
+        valor.Location = new Point(19, 38);
+        valor.AutoSize = true;
+
+        var lblDetalle = new Label
+        {
+            Text = detalle,
+            Font = TemaSIGEPOSTA.Fuente,
+            ForeColor = secundario,
+            BackColor = Color.White,
+            Location = new Point(22, 92),
+            AutoSize = true
+        };
+
+        var icono = new IconoCircular
+        {
+            Glifo = glifo,
+            Color = acento,
+            Size = new Size(46, 46)
+        };
+
+        tarjeta.Resize += (s, e) =>
+        {
+            icono.Location = new Point(
+                Math.Max(0, tarjeta.Width - icono.Width - 22), 18);
+        };
+
+        tarjeta.Controls.Add(lblTitulo);
+        tarjeta.Controls.Add(valor);
+        tarjeta.Controls.Add(lblDetalle);
+        tarjeta.Controls.Add(icono);
+
+        return tarjeta;
+    }
+
+    // ═══════════════════════ GRÁFICO Y ALERTAS ═══════════════════════
+    private Control CrearZonaGraficos()
+    {
+        var zona = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = fondo,
+            Padding = new Padding(0, 5, 0, 5)
+        };
+
+        zona.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 64));
+        zona.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 36));
+
+        var panelGrafico = CrearPanelSeccion(
+            "Atenciones de los últimos seis meses",
+            "Evolución mensual de la actividad asistencial");
+
+        grafico.BackColor = Color.White;
+        panelGrafico.AgregarContenido(grafico);
+        zona.Controls.Add(panelGrafico, 0, 0);
+
+        var panelAlertas = CrearPanelSeccion(
+            "Control de farmacia",
+            "Medicamentos que requieren revisión");
+
+        listaAlertas.AutoScroll = true;
+        listaAlertas.FlowDirection = FlowDirection.TopDown;
+        listaAlertas.WrapContents = false;
+        listaAlertas.BackColor = Color.White;
+        listaAlertas.SizeChanged += (s, e) => AjustarAlertas();
+
+        panelAlertas.AgregarContenido(listaAlertas);
+        zona.Controls.Add(panelAlertas, 1, 0);
+
+        return zona;
+    }
+
+    private void AjustarAlertas()
+    {
+        int ancho = listaAlertas.ClientSize.Width - 8;
+
+        if (listaAlertas.VerticalScroll.Visible)
+            ancho -= SystemInformation.VerticalScrollBarWidth;
+
+        foreach (Control c in listaAlertas.Controls)
+            c.Width = Math.Max(150, ancho);
+    }
+
+    // ═══════════════════════ LISTADOS ═══════════════════════
+    private Control CrearZonaListados()
+    {
+        var zona = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            ColumnCount = 2,
+            RowCount = 1,
+            BackColor = fondo,
+            Padding = new Padding(0, 5, 0, 5)
+        };
+
+        zona.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 56));
+        zona.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 44));
+
+        var panelCitas = CrearPanelSeccion(
+            "Próximas citas",
+            "Agenda médica registrada");
+
+        ConfigurarTabla(tablaCitas, "No hay citas programadas.");
+        panelCitas.AgregarContenido(tablaCitas);
+        zona.Controls.Add(panelCitas, 0, 0);
+
+        var panelActividad = CrearPanelSeccion(
+            "Actividad reciente",
+            "Últimos movimientos registrados");
+
+        ConfigurarTabla(tablaActividad, "Sin actividad registrada.");
+        panelActividad.AgregarContenido(tablaActividad);
+        zona.Controls.Add(panelActividad, 1, 0);
+
+        return zona;
+    }
+
+    private TarjetaRedondeada CrearPanelSeccion(
+        string titulo, string subtitulo)
+    {
+        var panel = new TarjetaRedondeada
+        {
+            Dock = DockStyle.Fill,
+            Margin = new Padding(4, 3, 10, 5),
+            FondoExterior = fondo,
+            Padding = new Padding(16, 12, 16, 16)
+        };
+
+        var encabezado = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 54,
+            BackColor = Color.White
+        };
+
+        var lblTitulo = new Label
+        {
+            Text = titulo,
+            Font = TemaSIGEPOSTA.FuenteNegrita,
+            ForeColor = verdeOscuro,
+            BackColor = Color.White,
+            Location = new Point(0, 2),
+            AutoSize = true
+        };
+
+        var lblSubtitulo = new Label
+        {
+            Text = subtitulo,
+            Font = TemaSIGEPOSTA.Fuente,
+            ForeColor = secundario,
+            BackColor = Color.White,
+            Location = new Point(1, 28),
+            AutoSize = true
+        };
+
+        var separador = new Panel
+        {
+            Dock = DockStyle.Bottom,
+            Height = 1,
+            BackColor = TemaSIGEPOSTA.Borde
+        };
+
+        encabezado.Controls.Add(lblTitulo);
+        encabezado.Controls.Add(lblSubtitulo);
+        encabezado.Controls.Add(separador);
+        panel.Controls.Add(encabezado);
+
+        return panel;
+    }
+
+    private void ConfigurarTabla(DataGridView tabla, string mensajeVacio)
+    {
+        tabla.ReadOnly = true;
+        tabla.AllowUserToAddRows = false;
+        tabla.AllowUserToDeleteRows = false;
+        tabla.AllowUserToResizeRows = false;
+        tabla.RowHeadersVisible = false;
+        tabla.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+        tabla.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+        tabla.MultiSelect = false;
+        tabla.BackgroundColor = Color.White;
+        tabla.BorderStyle = BorderStyle.None;
+        tabla.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
+        tabla.ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.None;
+        tabla.EnableHeadersVisualStyles = false;
+        tabla.ColumnHeadersHeightSizeMode =
+            DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+        tabla.ColumnHeadersHeight = 36;
+        tabla.RowTemplate.Height = 34;
+        tabla.GridColor = TemaSIGEPOSTA.Borde;
+
+        tabla.ColumnHeadersDefaultCellStyle.BackColor = verdeOscuro;
+        tabla.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        tabla.ColumnHeadersDefaultCellStyle.Font = TemaSIGEPOSTA.FuenteEtiqueta;
+        tabla.ColumnHeadersDefaultCellStyle.SelectionBackColor = verdeOscuro;
+        tabla.ColumnHeadersDefaultCellStyle.SelectionForeColor = Color.White;
+        tabla.ColumnHeadersDefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
+
+        tabla.DefaultCellStyle.Font = TemaSIGEPOSTA.Fuente;
+        tabla.DefaultCellStyle.ForeColor = texto;
+        tabla.DefaultCellStyle.BackColor = Color.White;
+        tabla.DefaultCellStyle.Padding = new Padding(8, 0, 0, 0);
+        tabla.DefaultCellStyle.SelectionBackColor = verdeClaro;
+        tabla.DefaultCellStyle.SelectionForeColor = verdeOscuro;
+
+        tabla.AlternatingRowsDefaultCellStyle.BackColor =
+            Color.FromArgb(248, 250, 248);
+
+        tabla.Dock = DockStyle.Fill;
+        tabla.CellFormatting += Tabla_CellFormatting;
+
+        tabla.Paint += (s, e) =>
+        {
+            if (tabla.RowCount > 0)
+                return;
+
+            e.Graphics.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+
+            Rectangle zona = new Rectangle(
+                0, tabla.ColumnHeadersHeight,
+                tabla.Width,
+                Math.Max(10, tabla.Height - tabla.ColumnHeadersHeight));
+
+            using var fuenteVacia = new Font("Segoe UI", 9.5F);
+
+            TextRenderer.DrawText(
+                e.Graphics,
+                mensajeVacio,
+                fuenteVacia,
+                zona,
+                secundario,
+                TextFormatFlags.HorizontalCenter |
+                TextFormatFlags.VerticalCenter);
+        };
+    }
+
+    private void Tabla_CellFormatting(
+        object? sender, DataGridViewCellFormattingEventArgs e)
+    {
+        if (sender is not DataGridView tabla ||
+            e.RowIndex < 0 || e.Value == null)
+            return;
+
+        string columna = tabla.Columns[e.ColumnIndex].Name;
+
+        if (columna != "Estado" && columna != "Resultado")
+            return;
+
+        string valor = (Convert.ToString(e.Value) ?? "").ToLowerInvariant();
+
+        Color color = secundario;
+
+        if (valor.Contains("cancel") || valor.Contains("anul") ||
+            valor.Contains("error") || valor.Contains("fall") ||
+            valor.Contains("rechaz"))
+            color = rojo;
+        else if (valor.Contains("exito") || valor.Contains("éxito") ||
+                 valor.Contains("complet") || valor.Contains("aten") ||
+                 valor.Contains("realiz") || valor.Contains("correct"))
+            color = verde;
+        else if (valor.Contains("pend") || valor.Contains("program") ||
+                 valor.Contains("confirm") || valor.Contains("reserv"))
+            color = azul;
+
+        e.CellStyle.ForeColor = color;
+        e.CellStyle.Font = fuenteEstado;
+        e.CellStyle.SelectionForeColor = color;
+    }
+
+    // ═══════════════════════ DATOS ═══════════════════════
+    private void CargarDatos()
+    {
+        try
+        {
+            using var conexion = ConexionBD.CrearConexion();
+            conexion.Open();
+
+            using (var comando = new SqlCommand(@"
+                SELECT
+                    (SELECT COUNT(*) FROM Pacientes WHERE Estado = 1) AS Pacientes,
+                    (SELECT COUNT(*) FROM Citas
+                     WHERE FechaCita = CAST(GETDATE() AS date)) AS CitasHoy,
+                    (SELECT COUNT(*) FROM Atenciones
+                     WHERE Estado = 1
+                       AND FechaAtencion >= DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1)
+                       AND FechaAtencion < DATEADD(MONTH, 1,
+                           DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))) AS AtencionesMes,
+                    (SELECT COUNT(*)
+                     FROM Inventario i
+                     INNER JOIN Medicamentos m ON m.IdMedicamento = i.IdMedicamento
+                     WHERE m.Estado = 1
+                       AND (i.StockActual <= i.StockMinimo
+                         OR i.FechaVencimiento <= DATEADD(DAY, 30, CAST(GETDATE() AS date)))) AS Alertas;
+            ", conexion))
+            using (var lector = comando.ExecuteReader())
+            {
+                if (lector.Read())
+                {
+                    lblPacientes.Text = Convert.ToInt32(lector["Pacientes"]).ToString("N0");
+                    lblCitas.Text = Convert.ToInt32(lector["CitasHoy"]).ToString("N0");
+                    lblAtenciones.Text = Convert.ToInt32(lector["AtencionesMes"]).ToString("N0");
+                    lblAlertas.Text = Convert.ToInt32(lector["Alertas"]).ToString("N0");
+                }
+            }
+
+            CargarGrafico(conexion);
+            CargarAlertas(conexion);
+            CargarCitas(conexion);
+            CargarActividad(conexion);
+
+            lblEstado.ForeColor = secundario;
+            lblEstado.Text = "Datos actualizados: " +
+                DateTime.Now.ToString("dd/MM/yyyy HH:mm");
+        }
+        catch (Exception ex)
+        {
+            lblEstado.Text = "No se pudo cargar la información: " + ex.Message;
+            lblEstado.ForeColor = Color.Firebrick;
+        }
+    }
+
+    private void CargarGrafico(SqlConnection conexion)
+    {
+        var datos = new List<(string Mes, int Total)>();
+
+        using var comando = new SqlCommand(@"
+            SELECT
+                FORMAT(DATEFROMPARTS(YEAR(FechaAtencion), MONTH(FechaAtencion), 1), 'MMM', 'es-PE') AS Mes,
+                COUNT(*) AS Total
+            FROM Atenciones
+            WHERE Estado = 1
+              AND FechaAtencion >= DATEADD(MONTH, -5,
+                    DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+              AND FechaAtencion < DATEADD(MONTH, 1,
+                    DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
+            GROUP BY YEAR(FechaAtencion), MONTH(FechaAtencion)
+            ORDER BY YEAR(FechaAtencion), MONTH(FechaAtencion);
+        ", conexion);
+
+        using var lector = comando.ExecuteReader();
+
+        while (lector.Read())
+        {
+            datos.Add((
+                Convert.ToString(lector["Mes"]) ?? "",
+                Convert.ToInt32(lector["Total"])));
+        }
+
+        grafico.Datos = datos;
+        grafico.Invalidate();
+    }
+
+    private void CargarAlertas(SqlConnection conexion)
+    {
+        listaAlertas.Controls.Clear();
+
+        using var comando = new SqlCommand(@"
+            SELECT TOP 8
+                m.NombreMedicamento,
+                i.StockActual,
+                i.StockMinimo,
+                i.FechaVencimiento,
+                CASE
+                    WHEN i.StockActual <= i.StockMinimo THEN 'Stock bajo'
+                    ELSE 'Vencimiento próximo'
+                END AS Motivo
+            FROM Inventario i
+            INNER JOIN Medicamentos m ON m.IdMedicamento = i.IdMedicamento
+            WHERE m.Estado = 1
+              AND (i.StockActual <= i.StockMinimo
+                OR i.FechaVencimiento <= DATEADD(DAY, 30, CAST(GETDATE() AS date)))
+            ORDER BY
+                CASE WHEN i.StockActual <= i.StockMinimo THEN 0 ELSE 1 END,
+                i.FechaVencimiento;
+        ", conexion);
+
+        using var lector = comando.ExecuteReader();
+        bool hayDatos = false;
+
+        while (lector.Read())
+        {
+            hayDatos = true;
+
+            string nombre =
+                Convert.ToString(lector["NombreMedicamento"]) ?? "Medicamento";
+
+            string motivo = Convert.ToString(lector["Motivo"]) ?? "";
+            string stock = "Stock: " + Convert.ToString(lector["StockActual"]);
+
+            if (lector["FechaVencimiento"] != DBNull.Value)
+            {
+                stock += "  ·  Vence: " +
+                    Convert.ToDateTime(lector["FechaVencimiento"])
+                        .ToString("dd/MM/yyyy");
+            }
+
+            listaAlertas.Controls.Add(
+                CrearFilaAlerta(nombre, motivo, stock));
+        }
+
+        if (!hayDatos)
+            listaAlertas.Controls.Add(
+                CrearMensaje("No hay alertas de farmacia."));
+
+        AjustarAlertas();
+    }
+
+    private Control CrearFilaAlerta(
+        string nombre, string motivo, string detalle)
+    {
+        bool esStock = motivo == "Stock bajo";
+
+        Color color = esStock ? rojo : ambar;
+
+        Color fondoFila = esStock
+            ? Color.FromArgb(253, 243, 243)
+            : Color.FromArgb(253, 248, 238);
+
+        var fila = new Panel
+        {
+            Width = 340,
+            Height = 58,
+            BackColor = fondoFila,
+            Margin = new Padding(2, 2, 2, 6)
+        };
+
+        var franja = new Panel
+        {
+            Dock = DockStyle.Left,
+            Width = 4,
+            BackColor = color
+        };
+
+        var titulo = new Label
+        {
+            Text = nombre,
+            Font = TemaSIGEPOSTA.FuenteEtiqueta,
+            ForeColor = texto,
+            BackColor = fondoFila,
+            Location = new Point(14, 8),
+            AutoSize = false,
+            Size = new Size(200, 20),
+            AutoEllipsis = true
+        };
+
+        var descripcion = new Label
+        {
+            Text = detalle,
+            Font = TemaSIGEPOSTA.Fuente,
+            ForeColor = secundario,
+            BackColor = fondoFila,
+            Location = new Point(14, 31),
+            AutoSize = false,
+            Size = new Size(240, 18),
+            AutoEllipsis = true
+        };
+
+        var etiqueta = new Label
+        {
+            Text = esStock ? "STOCK BAJO" : "POR VENCER",
+            Font = new Font("Segoe UI", 7F, FontStyle.Bold),
+            ForeColor = Color.White,
+            BackColor = color,
+            AutoSize = false,
+            Size = new Size(76, 20),
+            TextAlign = ContentAlignment.MiddleCenter
+        };
+
+        fila.Resize += (s, e) =>
+        {
+            etiqueta.Location = new Point(
+                Math.Max(0, fila.Width - etiqueta.Width - 10), 8);
+
+            titulo.Width = Math.Max(
+                60, fila.Width - etiqueta.Width - 34);
+
+            descripcion.Width = Math.Max(60, fila.Width - 28);
+        };
+
+        fila.Controls.Add(franja);
+        fila.Controls.Add(titulo);
+        fila.Controls.Add(descripcion);
+        fila.Controls.Add(etiqueta);
+
+        return fila;
+    }
+
+    private void CargarCitas(SqlConnection conexion)
+    {
+        using var adaptador = new SqlDataAdapter(@"
+            SELECT TOP 8
+                CONVERT(varchar(10), c.FechaCita, 103) AS Fecha,
+                LEFT(CONVERT(varchar(8), c.HoraCita, 108), 5) AS Hora,
+                CONCAT(p.Nombres, ' ', p.Apellidos) AS Paciente,
+                CONCAT(ps.Nombres, ' ', ps.Apellidos) AS Profesional,
+                c.Estado
+            FROM Citas c
+            INNER JOIN Pacientes p ON p.IdPaciente = c.IdPaciente
+            INNER JOIN PersonalSalud ps ON ps.IdPersonalSalud = c.IdPersonalSalud
+            WHERE c.FechaCita >= CAST(GETDATE() AS date)
+            ORDER BY c.FechaCita, c.HoraCita;
+        ", conexion);
+
+        var tabla = new DataTable();
+        adaptador.Fill(tabla);
+        tablaCitas.DataSource = tabla;
+
+        if (tablaCitas.Columns.Contains("Fecha"))
+            tablaCitas.Columns["Fecha"]!.FillWeight = 70;
+
+        if (tablaCitas.Columns.Contains("Hora"))
+            tablaCitas.Columns["Hora"]!.FillWeight = 45;
+
+        if (tablaCitas.Columns.Contains("Estado"))
+            tablaCitas.Columns["Estado"]!.FillWeight = 70;
+    }
+
+    private void CargarActividad(SqlConnection conexion)
+    {
+        using var adaptador = new SqlDataAdapter(@"
+            SELECT TOP 8
+                CONVERT(varchar(16), FechaAccion, 103) + ' ' +
+                LEFT(CONVERT(varchar(8), FechaAccion, 108), 5) AS Fecha,
+                Modulo,
+                Accion,
+                Resultado
+            FROM Auditoria
+            ORDER BY FechaAccion DESC;
+        ", conexion);
+
+        var tabla = new DataTable();
+        adaptador.Fill(tabla);
+        tablaActividad.DataSource = tabla;
+
+        if (tablaActividad.Columns.Contains("Fecha"))
+            tablaActividad.Columns["Fecha"]!.FillWeight = 95;
+    }
+
+    private Label CrearMensaje(string mensaje)
+    {
+        return new Label
+        {
+            Text = mensaje,
+            AutoSize = true,
+            Font = TemaSIGEPOSTA.Fuente,
+            ForeColor = secundario,
+            BackColor = Color.White,
+            Padding = new Padding(8)
+        };
+    }
+
+    // ═══════════════════════ CONTROLES PROPIOS ═══════════════════════
+
+    private static GraphicsPath Redondeado(Rectangle r, int radio)
+    {
+        var path = new GraphicsPath();
+
+        if (r.Width <= 0 || r.Height <= 0)
+            return path;
+
+        int d = Math.Min(radio * 2, Math.Min(r.Width, r.Height));
+
+        path.AddArc(r.X, r.Y, d, d, 180, 90);
+        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+
+        return path;
+    }
+
+    private static GraphicsPath RedondeadoSuperior(
+        Rectangle r, int radio)
+    {
+        var path = new GraphicsPath();
+
+        if (r.Width <= 0 || r.Height <= 0)
+            return path;
+
+        int d = Math.Min(radio * 2, Math.Min(r.Width, r.Height * 2));
+
+        path.AddArc(r.X, r.Y, d, d, 180, 90);
+        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+        path.AddLine(r.Right, r.Bottom, r.X, r.Bottom);
+        path.CloseFigure();
+
+        return path;
+    }
+
+    // ═══════════════════════ TARJETA REDONDEADA ═══════════════════════
+    private class TarjetaRedondeada : Panel
+    {
+        [System.ComponentModel.DesignerSerializationVisibility(
+            System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public Color FondoExterior { get; set; } =
+            TemaSIGEPOSTA.Fondo;
+
+        [System.ComponentModel.DesignerSerializationVisibility(
+            System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public Color Acento { get; set; } = Color.Empty;
+
+        public TarjetaRedondeada()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw,
+                true);
+
+            BackColor = Color.White;
+        }
+
+        public void AgregarContenido(Control contenido)
+        {
+            contenido.Dock = DockStyle.Fill;
+            Controls.Add(contenido);
+            contenido.BringToFront();
+        }
+
+        protected override void OnPaintBackground(PaintEventArgs e)
+        {
+            e.Graphics.Clear(FondoExterior);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            if (Width < 12 || Height < 12)
+                return;
+
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            Rectangle r = new Rectangle(1, 1, Width - 4, Height - 6);
+
+            for (int i = 1; i <= 4; i++)
+            {
+                Rectangle s = new Rectangle(
+                    r.X - 1, r.Y + i, r.Width + 2, r.Height);
+
+                using (GraphicsPath p = Redondeado(s, 14))
+                using (SolidBrush b = new SolidBrush(
+                    Color.FromArgb(7, 20, 50, 35)))
+                {
+                    g.FillPath(b, p);
+                }
+            }
+
+            using (GraphicsPath p = Redondeado(r, 14))
+            {
+                using (SolidBrush fondoTarjeta =
+                    new SolidBrush(Color.White))
+                {
+                    g.FillPath(fondoTarjeta, p);
+                }
+
+                if (Acento != Color.Empty)
+                {
+                    GraphicsState estado = g.Save();
+                    g.SetClip(p, CombineMode.Intersect);
+
+                    using (SolidBrush b = new SolidBrush(Acento))
+                    {
+                        g.FillRectangle(
+                            b, r.X, r.Y, 5, r.Height);
+                    }
+
+                    g.Restore(estado);
+                }
+
+                using (Pen borde = new Pen(TemaSIGEPOSTA.Borde, 1f))
+                {
+                    g.DrawPath(borde, p);
+                }
+            }
+        }
+    }
+
+    // ═══════════════════════ ICONO CIRCULAR ═══════════════════════
+    private class IconoCircular : Control
+    {
+        [System.ComponentModel.DesignerSerializationVisibility(
+            System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public string Glifo { get; set; } = "";
+
+        [System.ComponentModel.DesignerSerializationVisibility(
+            System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public Color Color { get; set; } = Color.Gray;
+
+        public IconoCircular()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer,
+                true);
+
+            BackColor = Color.White;
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.Clear(Color.White);
+
+            Rectangle r = new Rectangle(0, 0, Width - 1, Height - 1);
+
+            using (SolidBrush b = new SolidBrush(
+                Color.FromArgb(28, Color.R, Color.G, Color.B)))
+            {
+                g.FillEllipse(b, r);
+            }
+
+            using (Font f = new Font("Segoe MDL2 Assets", 15))
+            {
+                TextRenderer.DrawText(
+                    g, Glifo, f, r, Color,
+                    TextFormatFlags.HorizontalCenter |
+                    TextFormatFlags.VerticalCenter |
+                    TextFormatFlags.NoPadding);
+            }
+        }
+    }
+
+    // ═══════════════════════ GRÁFICO DE ATENCIONES ═══════════════════════
+    private class GraficoAtenciones : Panel
+    {
+        [System.ComponentModel.DesignerSerializationVisibility(
+            System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+        public List<(string Mes, int Total)> Datos { get; set; } = new();
+
+        public GraficoAtenciones()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw,
+                true);
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+
+            Graphics g = e.Graphics;
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
+            g.Clear(Color.White);
+
+            if (Datos.Count == 0)
+            {
+                using var fuenteVacia = new Font("Segoe UI", 10);
+
+                TextRenderer.DrawText(
+                    g,
+                    "Todavía no hay atenciones registradas.",
+                    fuenteVacia,
+                    ClientRectangle,
+                    TemaSIGEPOSTA.TextoSecundario,
+                    TextFormatFlags.HorizontalCenter |
+                    TextFormatFlags.VerticalCenter);
+
+                return;
+            }
+
+            int maximo = 1;
+
+            foreach (var dato in Datos)
+            {
+                if (dato.Total > maximo)
+                    maximo = dato.Total;
+            }
+
+            int paso = Math.Max(1, (int)Math.Ceiling(maximo / 4.0));
+            int tope = paso * 4;
+
+            int margenIzquierdo = 40;
+            int margenDerecho = 12;
+            int margenSuperior = 14;
+            int margenInferior = 30;
+
+            int anchoUtil = Math.Max(
+                100, Width - margenIzquierdo - margenDerecho);
+
+            int altoUtil = Math.Max(
+                70, Height - margenSuperior - margenInferior);
+
+            using var pincelTexto =
+                new SolidBrush(TemaSIGEPOSTA.TextoSecundario);
+
+            using var fuente = new Font("Segoe UI", 8);
+            using var fuenteValor =
+                new Font("Segoe UI", 8, FontStyle.Bold);
+
+            using var linea = new Pen(TemaSIGEPOSTA.Borde);
+            linea.DashStyle = DashStyle.Dash;
+
+            for (int i = 0; i <= 4; i++)
+            {
+                int y = margenSuperior + altoUtil -
+                    (altoUtil * i / 4);
+
+                g.DrawLine(
+                    linea,
+                    margenIzquierdo,
+                    y,
+                    Width - margenDerecho,
+                    y);
+
+                string etiqueta = (paso * i).ToString();
+                SizeF tam = g.MeasureString(etiqueta, fuente);
+
+                g.DrawString(
+                    etiqueta,
+                    fuente,
+                    pincelTexto,
+                    margenIzquierdo - tam.Width - 6,
+                    y - tam.Height / 2);
+            }
+
+            int ranura = anchoUtil / Datos.Count;
+
+            int anchoBarra = Math.Max(
+                14, Math.Min(56, (int)(ranura * 0.55)));
+
+            for (int i = 0; i < Datos.Count; i++)
+            {
+                var dato = Datos[i];
+                bool esUltimo = i == Datos.Count - 1;
+
+                int x = margenIzquierdo +
+                    i * ranura + (ranura - anchoBarra) / 2;
+
+                int alto = (int)(
+                    (double)dato.Total / tope * altoUtil);
+
+                alto = dato.Total > 0 ? Math.Max(4, alto) : 2;
+
+                int y = margenSuperior + altoUtil - alto;
+
+                var rectangulo = new Rectangle(
+                    x, y, anchoBarra, alto);
+
+                Color c1 = esUltimo
+                    ? Color.FromArgb(63, 150, 92)
+                    : Color.FromArgb(150, 205, 170);
+
+                Color c2 = esUltimo
+                    ? TemaSIGEPOSTA.VerdeOscuro
+                    : Color.FromArgb(105, 175, 134);
+
+                using (GraphicsPath path =
+                    RedondeadoSuperior(rectangulo, 6))
+                using (var pincel = new LinearGradientBrush(
+                    new Rectangle(x, y, anchoBarra, Math.Max(2, alto)),
+                    c1, c2, 90f))
+                {
+                    g.FillPath(pincel, path);
+                }
+
+                string valor = dato.Total.ToString();
+                SizeF tamValor = g.MeasureString(valor, fuenteValor);
+
+                g.DrawString(
+                    valor,
+                    fuenteValor,
+                    pincelTexto,
+                    x + (anchoBarra - tamValor.Width) / 2,
+                    y - 17);
+
+                string mes =
+                    char.ToUpper(dato.Mes.Length > 0 ? dato.Mes[0] : ' ') +
+                    (dato.Mes.Length > 1
+                        ? dato.Mes.Substring(1)
+                        : "");
+
+                SizeF tamMes = g.MeasureString(mes, fuente);
+
+                g.DrawString(
+                    mes,
+                    fuente,
+                    pincelTexto,
+                    x + (anchoBarra - tamMes.Width) / 2,
+                    margenSuperior + altoUtil + 7);
+            }
+        }
+    }
+}

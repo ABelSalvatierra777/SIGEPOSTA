@@ -1,0 +1,396 @@
+﻿using System;
+using System.Drawing;
+using System.IO;
+using System.IO.Compression;
+using System.Linq;
+using System.Windows.Forms;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormRespaldos : Form
+    {
+        private TextBox txtCarpetaOrigen = new();
+        private TextBox txtCarpetaRespaldos = new();
+        private DataGridView dgvRespaldos = new();
+        private Label lblEstado = new();
+
+        public FormRespaldos()
+        {
+            ConstruirFormulario();
+            SIGEPOSTA.Presentacion.Estilos.EstiloFormulario.Aplicar(this);
+        }
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Respaldos";
+            Size = new Size(1150, 700);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = Color.FromArgb(245, 247, 249);
+            Font = new Font("Segoe UI", 10);
+
+            Panel encabezado = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 80,
+                BackColor = Color.FromArgb(31, 77, 54)
+            };
+
+            encabezado.Controls.Add(new Label
+            {
+                Text = "COPIAS DE SEGURIDAD Y RESPALDOS",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 19, FontStyle.Bold),
+                Location = new Point(25, 18),
+                AutoSize = true
+            });
+
+            Controls.Add(encabezado);
+
+            Controls.Add(new Label
+            {
+                Text = "Administración de copias de seguridad de SIGEPOSTA",
+                Location = new Point(25, 95),
+                AutoSize = true,
+                ForeColor = Color.DimGray
+            });
+
+            GroupBox grupoCarpetas = new GroupBox
+            {
+                Text = "Configuración de carpetas",
+                Location = new Point(25, 130),
+                Size = new Size(1080, 180)
+            };
+
+            Controls.Add(grupoCarpetas);
+
+            Etiqueta(grupoCarpetas, "Carpeta de origen:", 20, 40);
+
+            txtCarpetaOrigen = new TextBox
+            {
+                Location = new Point(155, 37),
+                Width = 700,
+                ReadOnly = true
+            };
+
+            grupoCarpetas.Controls.Add(txtCarpetaOrigen);
+
+            Button btnOrigen = Boton(
+                "SELECCIONAR",
+                870,
+                34,
+                170,
+                Color.FromArgb(25, 118, 210)
+            );
+
+            btnOrigen.Click += (s, e) => SeleccionarOrigen();
+            grupoCarpetas.Controls.Add(btnOrigen);
+
+            Etiqueta(grupoCarpetas, "Carpeta de respaldos:", 20, 95);
+
+            txtCarpetaRespaldos = new TextBox
+            {
+                Location = new Point(155, 92),
+                Width = 700,
+                ReadOnly = true
+            };
+
+            grupoCarpetas.Controls.Add(txtCarpetaRespaldos);
+
+            Button btnDestino = Boton(
+                "SELECCIONAR",
+                870,
+                89,
+                170,
+                Color.FromArgb(25, 118, 210)
+            );
+
+            btnDestino.Click += (s, e) => SeleccionarDestino();
+            grupoCarpetas.Controls.Add(btnDestino);
+
+            Button btnCrear = Boton(
+                "CREAR RESPALDO",
+                25,
+                330,
+                180,
+                Color.FromArgb(46, 125, 50)
+            );
+
+            btnCrear.Click += (s, e) => CrearRespaldo();
+            Controls.Add(btnCrear);
+
+            Button btnListar = Boton(
+                "ACTUALIZAR LISTA",
+                220,
+                330,
+                180,
+                Color.FromArgb(25, 118, 210)
+            );
+
+            btnListar.Click += (s, e) => ListarRespaldos();
+            Controls.Add(btnListar);
+
+            Button btnRestaurar = Boton(
+                "RESTAURAR",
+                415,
+                330,
+                180,
+                Color.FromArgb(230, 126, 34)
+            );
+
+            btnRestaurar.Click += (s, e) => RestaurarRespaldo();
+            Controls.Add(btnRestaurar);
+
+            GroupBox grupoTabla = new GroupBox
+            {
+                Text = "Respaldos disponibles",
+                Location = new Point(25, 390),
+                Size = new Size(1080, 200)
+            };
+
+            dgvRespaldos = new DataGridView
+            {
+                Location = new Point(12, 25),
+                Size = new Size(1050, 160),
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = true
+            };
+
+            grupoTabla.Controls.Add(dgvRespaldos);
+            Controls.Add(grupoTabla);
+
+            lblEstado = new Label
+            {
+                Text = "Estado: esperando operación.",
+                Location = new Point(30, 615),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(31, 77, 54),
+                Font = new Font("Segoe UI", 10, FontStyle.Bold)
+            };
+
+            Controls.Add(lblEstado);
+        }
+
+        private void SeleccionarOrigen()
+        {
+            using FolderBrowserDialog dialogo = new FolderBrowserDialog
+            {
+                Description = "Seleccione la carpeta que desea respaldar"
+            };
+
+            if (dialogo.ShowDialog() == DialogResult.OK)
+                txtCarpetaOrigen.Text = dialogo.SelectedPath;
+        }
+
+        private void SeleccionarDestino()
+        {
+            using FolderBrowserDialog dialogo = new FolderBrowserDialog
+            {
+                Description = "Seleccione la carpeta donde se guardarán los respaldos"
+            };
+
+            if (dialogo.ShowDialog() == DialogResult.OK)
+            {
+                txtCarpetaRespaldos.Text = dialogo.SelectedPath;
+                ListarRespaldos();
+            }
+        }
+
+        private void CrearRespaldo()
+        {
+            string origen = txtCarpetaOrigen.Text;
+            string destino = txtCarpetaRespaldos.Text;
+
+            if (!Directory.Exists(origen))
+            {
+                MessageBox.Show("Seleccione una carpeta de origen válida.");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(destino))
+            {
+                MessageBox.Show("Seleccione la carpeta de respaldos.");
+                return;
+            }
+
+            string rutaOrigen = Path.GetFullPath(origen)
+                .TrimEnd(Path.DirectorySeparatorChar) +
+                Path.DirectorySeparatorChar;
+
+            string rutaDestino = Path.GetFullPath(destino)
+                .TrimEnd(Path.DirectorySeparatorChar) +
+                Path.DirectorySeparatorChar;
+
+            if (rutaDestino.StartsWith(
+                rutaOrigen,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show(
+                    "La carpeta de respaldos no puede estar dentro de la carpeta de origen."
+                );
+                return;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(destino);
+
+                string nombre = "SIGEPOSTA_Respaldo_" +
+                                DateTime.Now.ToString("yyyyMMdd_HHmmss") +
+                                ".zip";
+
+                string archivo = Path.Combine(destino, nombre);
+
+                ZipFile.CreateFromDirectory(
+                    origen,
+                    archivo,
+                    CompressionLevel.Optimal,
+                    false
+                );
+
+                lblEstado.Text = "Estado: respaldo creado correctamente.";
+
+                MessageBox.Show(
+                    "Copia de seguridad creada correctamente.\n\n" +
+                    archivo
+                );
+
+                ListarRespaldos();
+            }
+            catch (Exception ex)
+            {
+                lblEstado.Text = "Estado: error al crear el respaldo.";
+
+                MessageBox.Show(
+                    "No se pudo crear el respaldo:\n" + ex.Message
+                );
+            }
+        }
+
+        private void ListarRespaldos()
+        {
+            string carpeta = txtCarpetaRespaldos.Text;
+
+            if (!Directory.Exists(carpeta))
+            {
+                dgvRespaldos.DataSource = null;
+                return;
+            }
+
+            var archivos = Directory.GetFiles(carpeta, "*.zip")
+                .Select(ruta => new
+                {
+                    Nombre = Path.GetFileName(ruta),
+                    Ubicacion = ruta,
+                    Fecha = File.GetLastWriteTime(ruta),
+                    Tamano = Math.Round(
+                        new FileInfo(ruta).Length / 1024.0,
+                        2
+                    ) + " KB"
+                })
+                .OrderByDescending(a => a.Fecha)
+                .ToList();
+
+            dgvRespaldos.DataSource = archivos;
+
+            lblEstado.Text = "Estado: " + archivos.Count +
+                             " respaldo(s) encontrado(s).";
+        }
+
+        private void RestaurarRespaldo()
+        {
+            if (dgvRespaldos.CurrentRow == null)
+            {
+                MessageBox.Show("Seleccione un respaldo de la lista.");
+                return;
+            }
+
+            string archivo = dgvRespaldos.CurrentRow
+                .Cells["Ubicacion"].Value?.ToString() ?? "";
+
+            if (!File.Exists(archivo))
+            {
+                MessageBox.Show("El archivo seleccionado no existe.");
+                return;
+            }
+
+            using FolderBrowserDialog dialogo = new FolderBrowserDialog
+            {
+                Description = "Seleccione la carpeta donde se restaurarán los archivos"
+            };
+
+            if (dialogo.ShowDialog() != DialogResult.OK)
+                return;
+
+            DialogResult respuesta = MessageBox.Show(
+                "La restauración puede sobrescribir archivos existentes.\n" +
+                "Se recomienda crear un respaldo de la carpeta de destino antes de continuar.\n\n" +
+                "¿Desea continuar?",
+                "Confirmar restauración",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta != DialogResult.Yes)
+                return;
+
+            try
+            {
+                ZipFile.ExtractToDirectory(
+                    archivo,
+                    dialogo.SelectedPath,
+                    true
+                );
+
+                lblEstado.Text = "Estado: restauración completada.";
+
+                MessageBox.Show("Respaldo restaurado correctamente.");
+            }
+            catch (Exception ex)
+            {
+                lblEstado.Text = "Estado: error al restaurar.";
+
+                MessageBox.Show(
+                    "No se pudo restaurar el respaldo:\n" + ex.Message
+                );
+            }
+        }
+
+        private void Etiqueta(Control padre, string texto, int x, int y)
+        {
+            padre.Controls.Add(new Label
+            {
+                Text = texto,
+                Location = new Point(x, y),
+                AutoSize = true
+            });
+        }
+
+        private Button Boton(
+            string texto,
+            int x,
+            int y,
+            int ancho,
+            Color color)
+        {
+            return new Button
+            {
+                Text = texto,
+                Location = new Point(x, y),
+                Size = new Size(ancho, 38),
+                BackColor = color,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 9, FontStyle.Bold),
+                Cursor = Cursors.Hand
+            };
+        }
+    }
+}
+

@@ -1,0 +1,1056 @@
+﻿
+using System;
+using System.ComponentModel;
+using System.Drawing;
+using System.Linq;
+using System.Windows.Forms;
+using SIGEPOSTA.Presentacion.Estilos;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormCitas : Form
+    {
+        private readonly BindingList<CitaVista> citas = new();
+
+        private CampoInventario txtDniPaciente = new();
+        private CampoInventario txtPaciente = new();
+        private CampoInventario txtDniProfesional = new();
+        private CampoInventario txtProfesional = new();
+        private CampoInventario txtMotivo = new();
+
+        private DateTimePicker dtpFecha = new();
+        private DateTimePicker dtpHora = new();
+
+        private ComboBox cmbEstado = new();
+        private DataGridView dgvCitas = new();
+
+        private int indiceSeleccionado = -1;
+
+        public FormCitas()
+        {
+            ConstruirFormulario();
+            ConfigurarTabla();
+            AplicarEstilos();
+        }
+
+        // ═══════════════════════ INTERFAZ ═══════════════════════
+
+        private void ConstruirFormulario()
+        {
+            Text = "SIGEPOSTA - Gestión de citas médicas";
+            Size = new Size(1250, 850);
+            MinimumSize = new Size(1100, 750);
+            StartPosition = FormStartPosition.CenterScreen;
+            BackColor = InventarioEstilo.Fondo;
+            Font = new Font("Segoe UI", 10F);
+            DoubleBuffered = true;
+
+            // ENCABEZADO INSTITUCIONAL
+            Panel encabezado = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 110,
+                BackColor = InventarioEstilo.VerdeOscuro,
+                Padding = new Padding(30, 12, 30, 12)
+            };
+
+            TableLayoutPanel contenidoEncabezado = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                BackColor = InventarioEstilo.VerdeOscuro,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+
+            contenidoEncabezado.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 58));
+            contenidoEncabezado.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 42));
+
+            contenidoEncabezado.Controls.Add(new Label
+            {
+                Text = "GESTIÓN DE CITAS MÉDICAS",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 21F, FontStyle.Bold),
+                TextAlign = ContentAlignment.BottomLeft,
+                BackColor = Color.Transparent,
+                Margin = new Padding(0)
+            }, 0, 0);
+
+            contenidoEncabezado.Controls.Add(new Label
+            {
+                Text = "Programación, organización y seguimiento de citas de los pacientes",
+                Dock = DockStyle.Fill,
+                ForeColor = Color.FromArgb(220, 235, 225),
+                Font = new Font("Segoe UI", 10F),
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.Transparent,
+                Margin = new Padding(2, 0, 0, 0)
+            }, 0, 1);
+
+            encabezado.Controls.Add(contenidoEncabezado);
+
+            // CUERPO
+            Panel contenido = new()
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                Padding = new Padding(28, 25, 28, 20),
+                BackColor = InventarioEstilo.Fondo
+            };
+
+            TableLayoutPanel columna = new()
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                ColumnCount = 1,
+                RowCount = 4,
+                BackColor = InventarioEstilo.Fondo,
+                Padding = new Padding(0)
+            };
+
+            columna.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 100));
+
+            for (int i = 0; i < 4; i++)
+                columna.RowStyles.Add(
+                    new RowStyle(SizeType.AutoSize));
+
+            // TARJETA DE PACIENTE Y PROFESIONAL
+            TarjetaInventario tarjetaDatos = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 245,
+                Margin = new Padding(0, 0, 0, 15)
+            };
+
+            columna.Controls.Add(tarjetaDatos, 0, 0);
+
+            TableLayoutPanel distribucionDatos = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Padding = new Padding(20, 12, 20, 15),
+                BackColor = Color.White
+            };
+
+            distribucionDatos.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 48));
+            distribucionDatos.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            tarjetaDatos.Controls.Add(distribucionDatos);
+
+            distribucionDatos.Controls.Add(new Label
+            {
+                Text = "Información del paciente y profesional",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = InventarioEstilo.VerdeOscuro,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.White,
+                Margin = new Padding(0)
+            }, 0, 0);
+
+            TableLayoutPanel rejilla = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 6,
+                RowCount = 2,
+                BackColor = Color.White,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+            rejilla.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
+
+            for (int i = 0; i < 2; i++)
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 65));
+
+            txtDniPaciente = new CampoInventario();
+            txtPaciente = new CampoInventario();
+            txtDniProfesional = new CampoInventario();
+            txtProfesional = new CampoInventario();
+
+            dtpFecha = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                MinDate = DateTime.Today,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                Margin = new Padding(3, 8, 12, 5)
+            };
+
+            dtpHora = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "HH:mm",
+                ShowUpDown = true,
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 10F),
+                Margin = new Padding(3, 8, 12, 5)
+            };
+
+            void AgregarCampo(string etiqueta, Control campo, int fila, int col)
+            {
+                rejilla.Controls.Add(new Label
+                {
+                    Text = etiqueta,
+                    AutoSize = true,
+                    Anchor = AnchorStyles.Left,
+                    ForeColor = InventarioEstilo.Texto,
+                    Font = new Font("Segoe UI", 9.5F),
+                    BackColor = Color.White,
+                    Margin = new Padding(3, 10, 3, 3)
+                }, col, fila);
+
+                campo.Dock = DockStyle.Fill;
+                campo.Margin = new Padding(3, 5, 12, 5);
+                rejilla.Controls.Add(campo, col + 1, fila);
+            }
+
+            AgregarCampo("DNI paciente:", txtDniPaciente, 0, 0);
+            AgregarCampo("Paciente:", txtPaciente, 0, 2);
+            AgregarCampo("DNI profesional:", txtDniProfesional, 0, 4);
+
+            AgregarCampo("Profesional:", txtProfesional, 1, 0);
+            AgregarCampo("Fecha:", dtpFecha, 1, 2);
+            AgregarCampo("Hora:", dtpHora, 1, 4);
+
+            distribucionDatos.Controls.Add(rejilla, 0, 1);
+
+            // TARJETA DE DETALLES
+            TarjetaInventario tarjetaDetalles = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 185,
+                Margin = new Padding(0, 0, 0, 15)
+            };
+
+            columna.Controls.Add(tarjetaDetalles, 0, 1);
+
+            TableLayoutPanel distribucionDetalles = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Padding = new Padding(20, 12, 20, 15),
+                BackColor = Color.White
+            };
+
+            distribucionDetalles.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 45));
+            distribucionDetalles.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            tarjetaDetalles.Controls.Add(distribucionDetalles);
+
+            distribucionDetalles.Controls.Add(new Label
+            {
+                Text = "Detalles de la cita",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = InventarioEstilo.VerdeOscuro,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.White,
+                Margin = new Padding(0)
+            }, 0, 0);
+
+            TableLayoutPanel rejillaDetalles = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 2,
+                BackColor = Color.White,
+                Padding = new Padding(5)
+            };
+
+            rejillaDetalles.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 130));
+            rejillaDetalles.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+            rejillaDetalles.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Absolute, 100));
+            rejillaDetalles.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 65));
+
+            rejillaDetalles.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 48));
+            rejillaDetalles.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 65));
+
+            cmbEstado = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10F),
+                BackColor = InventarioEstilo.Campo,
+                ForeColor = InventarioEstilo.Texto,
+                FlatStyle = FlatStyle.Flat
+            };
+
+            cmbEstado.Items.AddRange(new object[]
+            {
+                "Programada",
+                "Confirmada",
+                "Atendida",
+                "Cancelada",
+                "No asistió"
+            });
+
+            cmbEstado.SelectedIndex = 0;
+
+            txtMotivo = new CampoInventario();
+            txtMotivo.ConfigurarMultilinea(true, ScrollBars.Vertical);
+
+            rejillaDetalles.Controls.Add(new Label
+            {
+                Text = "Estado:",
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = InventarioEstilo.Texto,
+                Font = new Font("Segoe UI", 9.5F),
+                BackColor = Color.White,
+                Margin = new Padding(3, 10, 3, 3)
+            }, 0, 0);
+
+            cmbEstado.Dock = DockStyle.Fill;
+            cmbEstado.Margin = new Padding(3, 5, 12, 5);
+            rejillaDetalles.Controls.Add(cmbEstado, 1, 0);
+
+            rejillaDetalles.Controls.Add(new Label
+            {
+                Text = "Motivo:",
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                ForeColor = InventarioEstilo.Texto,
+                Font = new Font("Segoe UI", 9.5F),
+                BackColor = Color.White,
+                Margin = new Padding(3, 10, 3, 3)
+            }, 0, 1);
+
+            txtMotivo.Dock = DockStyle.Fill;
+            txtMotivo.Margin = new Padding(3, 5, 12, 5);
+            rejillaDetalles.Controls.Add(txtMotivo, 1, 1);
+            rejillaDetalles.SetColumnSpan(txtMotivo, 3);
+
+            distribucionDetalles.Controls.Add(rejillaDetalles, 0, 1);
+
+            // BOTONERA CENTRADA
+            Panel panelBotones = new()
+            {
+                Dock = DockStyle.Fill,
+                Height = 78,
+                BackColor = InventarioEstilo.Fondo,
+                Padding = new Padding(0, 8, 0, 8),
+                Margin = new Padding(0, 0, 0, 12)
+            };
+
+            FlowLayoutPanel botones = new()
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Anchor = AnchorStyles.None,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Padding = new Padding(10),
+                Margin = new Padding(0),
+                BackColor = InventarioEstilo.Fondo
+            };
+
+            BotonInventario btnRegistrar =
+                new("REGISTRAR", TipoBoton.Primario);
+            btnRegistrar.Click += (s, e) => RegistrarCita();
+
+            BotonInventario btnActualizar =
+                new("ACTUALIZAR", TipoBoton.Secundario);
+            btnActualizar.Click += (s, e) => ActualizarCita();
+
+            BotonInventario btnEliminar =
+                new("ELIMINAR", TipoBoton.Peligro);
+            btnEliminar.Click += (s, e) => EliminarCita();
+
+            BotonInventario btnLimpiar =
+                new("LIMPIAR", TipoBoton.Secundario);
+            btnLimpiar.Click += (s, e) => LimpiarFormulario();
+
+            foreach (BotonInventario boton in new[]
+            {
+                btnRegistrar, btnActualizar, btnEliminar, btnLimpiar
+            })
+            {
+                boton.Size = new Size(155, 46);
+                boton.Margin = new Padding(8, 0, 8, 5);
+            }
+
+            botones.Controls.AddRange(new Control[]
+            {
+                btnRegistrar, btnActualizar, btnEliminar, btnLimpiar
+            });
+
+            panelBotones.Controls.Add(botones);
+
+            void CentrarBotones()
+            {
+                botones.Location = new Point(
+                    Math.Max(0, (panelBotones.ClientSize.Width - botones.Width) / 2),
+                    Math.Max(0, (panelBotones.ClientSize.Height - botones.Height) / 2));
+            }
+
+            panelBotones.Resize += (s, e) => CentrarBotones();
+            botones.SizeChanged += (s, e) => CentrarBotones();
+
+            columna.Controls.Add(panelBotones, 0, 2);
+
+            // TARJETA DE LISTADO
+            TarjetaInventario tarjetaTabla = new()
+            {
+                Dock = DockStyle.Top,
+                Height = 370,
+                Margin = new Padding(0, 0, 0, 15)
+            };
+
+            columna.Controls.Add(tarjetaTabla, 0, 3);
+
+            TableLayoutPanel distribucionTabla = new()
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2,
+                Padding = new Padding(20, 12, 20, 15),
+                BackColor = Color.White
+            };
+
+            distribucionTabla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 48));
+            distribucionTabla.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            tarjetaTabla.Controls.Add(distribucionTabla);
+
+            distribucionTabla.Controls.Add(new Label
+            {
+                Text = "Listado de citas médicas",
+                Dock = DockStyle.Fill,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = InventarioEstilo.VerdeOscuro,
+                TextAlign = ContentAlignment.MiddleLeft,
+                BackColor = Color.White,
+                Margin = new Padding(0)
+            }, 0, 0);
+
+            dgvCitas = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoGenerateColumns = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                BackgroundColor = Color.White,
+                RowHeadersVisible = false,
+                BorderStyle = BorderStyle.None,
+                Margin = new Padding(0)
+            };
+
+            dgvCitas.SelectionChanged +=
+                (s, e) => SeleccionarCita();
+
+            distribucionTabla.Controls.Add(dgvCitas, 0, 1);
+
+            contenido.Controls.Add(columna);
+
+            Controls.Add(contenido);
+            Controls.Add(encabezado);
+        }
+
+        // ═══════════════════════ GRUPO PACIENTE ═══════════════════════
+
+        private GroupBox CrearGrupoPaciente()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Información del paciente y profesional", 150);
+
+            TableLayoutPanel rejilla = CrearRejilla(6, 2);
+
+            txtDniPaciente = NuevoCampo();
+            txtPaciente = NuevoCampo();
+            txtDniProfesional = NuevoCampo();
+            txtProfesional = NuevoCampo();
+
+            dtpFecha = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Short,
+                MinDate = DateTime.Today,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 8, 24, 8)
+            };
+
+            dtpHora = new DateTimePicker
+            {
+                Format = DateTimePickerFormat.Custom,
+                CustomFormat = "HH:mm",
+                ShowUpDown = true,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 8, 24, 8)
+            };
+
+            AgregarPar(rejilla, "DNI paciente:", txtDniPaciente, 0, 0);
+            AgregarPar(rejilla, "Paciente:", txtPaciente, 2, 0);
+            AgregarPar(rejilla, "DNI profesional:", txtDniProfesional, 4, 0);
+
+            AgregarPar(rejilla, "Profesional:", txtProfesional, 0, 1);
+            AgregarPar(rejilla, "Fecha:", dtpFecha, 2, 1);
+            AgregarPar(rejilla, "Hora:", dtpHora, 4, 1);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ GRUPO CITA ═══════════════════════
+
+        private GroupBox CrearGrupoCita()
+        {
+            GroupBox grupo = CrearGrupo("Detalles de la cita", 155);
+
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                RowCount = 2,
+                BackColor = TemaSIGEPOSTA.Blanco,
+                Padding = new Padding(5)
+            };
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 65));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.AutoSize));
+
+            rejilla.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 35));
+
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Absolute, 46));
+
+            rejilla.RowStyles.Add(
+                new RowStyle(SizeType.Percent, 100));
+
+            txtMotivo = new TextBox
+            {
+                Multiline = true,
+                ScrollBars = ScrollBars.Vertical,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 24, 8)
+            };
+
+            cmbEstado = new ComboBox
+            {
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0, 6, 10, 8)
+            };
+
+            cmbEstado.Items.AddRange(new object[]
+            {
+                "Programada",
+                "Confirmada",
+                "Atendida",
+                "Cancelada",
+                "No asistió"
+            });
+
+            cmbEstado.SelectedIndex = 0;
+
+            Label lblEstado = NuevaEtiqueta("Estado:");
+            Label lblMotivo = NuevaEtiqueta("Motivo:");
+
+            rejilla.Controls.Add(lblEstado, 0, 0);
+            rejilla.Controls.Add(cmbEstado, 1, 0);
+
+            rejilla.Controls.Add(lblMotivo, 0, 1);
+            rejilla.Controls.Add(txtMotivo, 1, 1);
+            rejilla.SetColumnSpan(txtMotivo, 3);
+
+            grupo.Controls.Add(rejilla);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ BOTONERA ═══════════════════════
+
+        private Control CrearBotonera()
+        {
+            FlowLayoutPanel fila = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 58,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = TemaSIGEPOSTA.Fondo,
+                Padding = new Padding(0, 8, 0, 0),
+                Margin = new Padding(0, 0, 0, 14)
+            };
+
+            Button btnRegistrar = NuevoBoton(
+                "REGISTRAR", TipoBoton.Primario);
+
+            btnRegistrar.Click += (s, e) => RegistrarCita();
+
+            Button btnActualizar = NuevoBoton(
+                "ACTUALIZAR", TipoBoton.Primario);
+
+            btnActualizar.Click += (s, e) => ActualizarCita();
+
+            Button btnEliminar = NuevoBoton(
+                "ELIMINAR", TipoBoton.Peligro);
+
+            btnEliminar.Click += (s, e) => EliminarCita();
+
+            Button btnLimpiar = NuevoBoton(
+                "LIMPIAR", TipoBoton.Secundario);
+
+            btnLimpiar.Click += (s, e) => LimpiarFormulario();
+
+            fila.Controls.Add(btnRegistrar);
+            fila.Controls.Add(btnActualizar);
+            fila.Controls.Add(btnEliminar);
+            fila.Controls.Add(btnLimpiar);
+
+            return fila;
+        }
+
+        // ═══════════════════════ GRUPO TABLA ═══════════════════════
+
+        private GroupBox CrearGrupoTabla()
+        {
+            GroupBox grupo = CrearGrupo(
+                "Listado de citas médicas", 320);
+
+            dgvCitas = new DataGridView
+            {
+                Dock = DockStyle.Fill,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                AutoGenerateColumns = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                RowHeadersVisible = false,
+                Margin = new Padding(5)
+            };
+
+            dgvCitas.SelectionChanged += (s, e) => SeleccionarCita();
+
+            grupo.Controls.Add(dgvCitas);
+
+            return grupo;
+        }
+
+        // ═══════════════════════ AYUDAS DE DISEÑO ═══════════════════════
+
+        private GroupBox CrearGrupo(string titulo, int alto)
+        {
+            return new GroupBox
+            {
+                Text = titulo,
+                Dock = DockStyle.Top,
+                Height = alto,
+                Margin = new Padding(0, 0, 0, 14),
+                Padding = new Padding(16, 10, 16, 10)
+            };
+        }
+
+        private TableLayoutPanel CrearRejilla(int columnas, int filas)
+        {
+            TableLayoutPanel rejilla = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = columnas,
+                RowCount = filas,
+                BackColor = TemaSIGEPOSTA.Blanco
+            };
+
+            for (int i = 0; i < columnas; i++)
+            {
+                if (i % 2 == 0)
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(SizeType.AutoSize));
+                else
+                    rejilla.ColumnStyles.Add(
+                        new ColumnStyle(
+                            SizeType.Percent,
+                            100f / (columnas / 2)));
+            }
+
+            for (int i = 0; i < filas; i++)
+            {
+                rejilla.RowStyles.Add(
+                    new RowStyle(SizeType.Absolute, 46));
+            }
+
+            return rejilla;
+        }
+
+        private void AgregarPar(
+            TableLayoutPanel rejilla,
+            string texto,
+            Control campo,
+            int columna,
+            int fila)
+        {
+            Label etiqueta = NuevaEtiqueta(texto);
+
+            campo.Dock = DockStyle.Fill;
+            campo.Margin = new Padding(0, 6, 24, 6);
+
+            rejilla.Controls.Add(etiqueta, columna, fila);
+            rejilla.Controls.Add(campo, columna + 1, fila);
+        }
+
+        private Label NuevaEtiqueta(string texto)
+        {
+            return new Label
+            {
+                Text = texto,
+                AutoSize = true,
+                Anchor = AnchorStyles.Left,
+                Margin = new Padding(0, 0, 10, 0),
+                ForeColor = TemaSIGEPOSTA.Texto,
+                Font = TemaSIGEPOSTA.FuenteEtiqueta
+            };
+        }
+
+        private TextBox NuevoCampo()
+        {
+            return new TextBox();
+        }
+
+        private Button NuevoBoton(string texto, TipoBoton tipo)
+        {
+            Button boton = new Button
+            {
+                Text = texto,
+                Margin = new Padding(0, 0, 12, 0)
+            };
+
+            TemaSIGEPOSTA.EstilizarBoton(boton, tipo);
+
+            return boton;
+        }
+
+        // ═══════════════════════ TABLA ═══════════════════════
+
+        private void ConfigurarTabla()
+        {
+            TemaSIGEPOSTA.EstilizarTabla(dgvCitas);
+
+            AgregarColumna("DniPaciente", "DNI paciente");
+            AgregarColumna("Paciente", "Paciente");
+            AgregarColumna("DniProfesional", "DNI profesional");
+            AgregarColumna("Profesional", "Profesional");
+            AgregarColumna("Fecha", "Fecha");
+            AgregarColumna("Hora", "Hora");
+            AgregarColumna("Motivo", "Motivo");
+            AgregarColumna("Estado", "Estado");
+
+            dgvCitas.Columns["Fecha"]!.DefaultCellStyle.Format =
+                "dd/MM/yyyy";
+
+            dgvCitas.DataSource = citas;
+        }
+
+        private void AgregarColumna(string propiedad, string titulo)
+        {
+            dgvCitas.Columns.Add(new DataGridViewTextBoxColumn
+            {
+                Name = propiedad,
+                DataPropertyName = propiedad,
+                HeaderText = titulo
+            });
+        }
+
+        // ═══════════════════════ ESTILOS ═══════════════════════
+
+// ═══════════════════════ ESTILOS ═══════════════════════
+
+private void AplicarEstilos()
+{
+    BackColor = TemaSIGEPOSTA.Fondo;
+    Font = TemaSIGEPOSTA.Fuente;
+
+    AplicarEstilosRecursivos(this);
+
+    // Fecha y hora
+    TemaSIGEPOSTA.EstilizarFecha(dtpFecha);
+    TemaSIGEPOSTA.EstilizarFecha(dtpHora);
+
+    // Estado
+    TemaSIGEPOSTA.EstilizarComboBox(cmbEstado);
+
+    // Tabla de citas
+    TemaSIGEPOSTA.EstilizarTabla(dgvCitas);
+}
+
+private void AplicarEstilosRecursivos(Control control)
+{
+    if (control is GroupBox grupo)
+    {
+        TemaSIGEPOSTA.EstilizarGrupo(grupo);
+    }
+    else if (control is TextBox caja)
+    {
+        TemaSIGEPOSTA.EstilizarTextBox(caja);
+    }
+    else if (control is Label etiqueta)
+    {
+        TemaSIGEPOSTA.EstilizarEtiqueta(etiqueta);
+    }
+    else if (control is Button boton)
+    {
+        TemaSIGEPOSTA.EstilizarBoton(
+            boton,
+            boton.Text.Contains("ELIMINAR")
+                ? TipoBoton.Peligro
+                : boton.Text.Contains("LIMPIAR")
+                    ? TipoBoton.Secundario
+                    : TipoBoton.Primario
+        );
+    }
+
+    foreach (Control hijo in control.Controls)
+    {
+        AplicarEstilosRecursivos(hijo);
+    }
+}
+
+        // ═══════════════════════ LÓGICA ═══════════════════════
+
+        private void RegistrarCita()
+        {
+            if (!ValidarDatos())
+                return;
+
+            bool horarioOcupado = citas.Any(c =>
+                c.DniProfesional == txtDniProfesional.Text.Trim() &&
+                c.Fecha == dtpFecha.Value.Date &&
+                c.Hora == dtpHora.Value.ToString("HH:mm") &&
+                c.Estado != "Cancelada");
+
+            if (horarioOcupado)
+            {
+                MessageBox.Show(
+                    "El profesional ya tiene una cita registrada en ese horario.");
+
+                return;
+            }
+
+            citas.Add(ObtenerDatos());
+
+            MessageBox.Show("Cita médica registrada correctamente.");
+            LimpiarFormulario();
+        }
+
+        private void ActualizarCita()
+        {
+            if (indiceSeleccionado < 0 || indiceSeleccionado >= citas.Count)
+            {
+                MessageBox.Show("Seleccione una cita de la tabla.");
+                return;
+            }
+
+            if (!ValidarDatos())
+                return;
+
+            string dniProfesional = txtDniProfesional.Text.Trim();
+            DateTime fecha = dtpFecha.Value.Date;
+            string hora = dtpHora.Value.ToString("HH:mm");
+
+            bool horarioOcupado = citas
+                .Where((c, i) => i != indiceSeleccionado)
+                .Any(c =>
+                    c.DniProfesional == dniProfesional &&
+                    c.Fecha == fecha &&
+                    c.Hora == hora &&
+                    c.Estado != "Cancelada");
+
+            if (horarioOcupado)
+            {
+                MessageBox.Show(
+                    "El profesional ya tiene una cita en ese horario.");
+
+                return;
+            }
+
+            CitaVista nuevo = ObtenerDatos();
+            CitaVista anterior = citas[indiceSeleccionado];
+
+            anterior.DniPaciente = nuevo.DniPaciente;
+            anterior.Paciente = nuevo.Paciente;
+            anterior.DniProfesional = nuevo.DniProfesional;
+            anterior.Profesional = nuevo.Profesional;
+            anterior.Fecha = nuevo.Fecha;
+            anterior.Hora = nuevo.Hora;
+            anterior.Motivo = nuevo.Motivo;
+            anterior.Estado = nuevo.Estado;
+
+            dgvCitas.Refresh();
+
+            MessageBox.Show("Cita actualizada correctamente.");
+            LimpiarFormulario();
+        }
+
+        private void EliminarCita()
+        {
+            if (indiceSeleccionado < 0 || indiceSeleccionado >= citas.Count)
+            {
+                MessageBox.Show("Seleccione una cita de la tabla.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Está seguro de eliminar esta cita?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                citas.RemoveAt(indiceSeleccionado);
+
+                MessageBox.Show("Cita eliminada correctamente.");
+                LimpiarFormulario();
+            }
+        }
+
+        private void SeleccionarCita()
+        {
+            if (dgvCitas.CurrentRow?.DataBoundItem is not CitaVista cita)
+                return;
+
+            indiceSeleccionado = citas.IndexOf(cita);
+
+            txtDniPaciente.Text = cita.DniPaciente;
+            txtPaciente.Text = cita.Paciente;
+            txtDniProfesional.Text = cita.DniProfesional;
+            txtProfesional.Text = cita.Profesional;
+            dtpFecha.Value = cita.Fecha;
+
+            if (TimeSpan.TryParse(cita.Hora, out TimeSpan hora))
+                dtpHora.Value = DateTime.Today.Add(hora);
+
+            txtMotivo.Text = cita.Motivo;
+            cmbEstado.SelectedItem = cita.Estado;
+        }
+
+        private bool ValidarDatos()
+        {
+            if (string.IsNullOrWhiteSpace(txtDniPaciente.Text) ||
+                string.IsNullOrWhiteSpace(txtPaciente.Text) ||
+                string.IsNullOrWhiteSpace(txtDniProfesional.Text) ||
+                string.IsNullOrWhiteSpace(txtProfesional.Text) ||
+                string.IsNullOrWhiteSpace(txtMotivo.Text))
+            {
+                MessageBox.Show("Complete todos los campos de la cita.");
+                return false;
+            }
+
+            if (!ValidarDni(txtDniPaciente.Text) ||
+                !ValidarDni(txtDniProfesional.Text))
+            {
+                MessageBox.Show(
+                    "Los DNI deben contener exactamente 8 números.");
+
+                return false;
+            }
+
+            if (dtpFecha.Value.Date < DateTime.Today)
+            {
+                MessageBox.Show(
+                    "La fecha de la cita no puede ser anterior a hoy.");
+
+                return false;
+            }
+
+            if (cmbEstado.SelectedItem == null)
+            {
+                MessageBox.Show("Seleccione el estado de la cita.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool ValidarDni(string dni)
+        {
+            dni = dni.Trim();
+
+            return dni.Length == 8 && dni.All(char.IsDigit);
+        }
+
+        private CitaVista ObtenerDatos()
+        {
+            return new CitaVista
+            {
+                DniPaciente = txtDniPaciente.Text.Trim(),
+                Paciente = txtPaciente.Text.Trim(),
+                DniProfesional = txtDniProfesional.Text.Trim(),
+                Profesional = txtProfesional.Text.Trim(),
+                Fecha = dtpFecha.Value.Date,
+                Hora = dtpHora.Value.ToString("HH:mm"),
+                Motivo = txtMotivo.Text.Trim(),
+                Estado = cmbEstado.Text
+            };
+        }
+
+        private void LimpiarFormulario()
+        {
+            indiceSeleccionado = -1;
+
+            txtDniPaciente.Clear();
+            txtPaciente.Clear();
+            txtDniProfesional.Clear();
+            txtProfesional.Clear();
+            txtMotivo.Clear();
+
+            dtpFecha.Value = DateTime.Today;
+            dtpHora.Value = DateTime.Today;
+
+            cmbEstado.SelectedIndex = 0;
+
+            dgvCitas.ClearSelection();
+        }
+
+        // ═══════════════════════ MODELO DE VISTA ═══════════════════════
+
+        private class CitaVista
+        {
+            public string DniPaciente { get; set; } = "";
+            public string Paciente { get; set; } = "";
+            public string DniProfesional { get; set; } = "";
+            public string Profesional { get; set; } = "";
+            public DateTime Fecha { get; set; }
+            public string Hora { get; set; } = "";
+            public string Motivo { get; set; } = "";
+            public string Estado { get; set; } = "";
+        }
+    }
+}
+

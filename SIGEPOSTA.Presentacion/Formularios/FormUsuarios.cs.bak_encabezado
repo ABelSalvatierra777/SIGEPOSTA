@@ -1,0 +1,454 @@
+﻿using System;
+using System.Drawing;
+using System.Windows.Forms;
+
+namespace SIGEPOSTA.Presentacion.Formularios
+{
+    public class FormUsuarios : Form
+    {
+        private CampoInventario txtUsuario;
+        private CampoInventario txtNombre;
+        private TextBox txtContrasena;
+        private ComboBox cmbRol;
+        private CheckBox chkActivo;
+        private DataGridView tabla;
+
+        private readonly Color verdeOscuro = Color.FromArgb(31, 77, 54);
+        private readonly Color verde = Color.FromArgb(47, 125, 69);
+        private readonly Color fondo = Color.FromArgb(245, 248, 246);
+
+        public FormUsuarios()
+        {
+            ConfigurarVentana();
+            CrearFormulario();
+            CrearTabla();
+
+            SIGEPOSTA.Presentacion.Estilos.EstiloFormulario.Aplicar(this);
+            AplicarEstilosLocales();
+        }
+
+        private void ConfigurarVentana()
+        {
+            Text = "Administración de usuarios - SIGEPOSTA";
+            Size = new Size(1200, 780);
+            MinimumSize = new Size(950, 650);
+            StartPosition = FormStartPosition.CenterParent;
+            BackColor = fondo;
+            Font = new Font("Segoe UI", 9.5F);
+        }
+
+        private void CrearFormulario()
+        {
+            Panel encabezado = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 82,
+                BackColor = verdeOscuro
+            };
+
+            encabezado.Controls.Add(new Label
+            {
+                Text = "ADMINISTRACIÓN DE USUARIOS",
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 19, FontStyle.Bold),
+                Location = new Point(28, 15),
+                AutoSize = true
+            });
+
+            encabezado.Controls.Add(new Label
+            {
+                Text = "Gestione las cuentas y los permisos de acceso al sistema",
+                ForeColor = Color.FromArgb(225, 238, 230),
+                Font = new Font("Segoe UI", 9.5F),
+                Location = new Point(31, 51),
+                AutoSize = true
+            });
+
+            Controls.Add(encabezado);
+
+            Label descripcion = new Label
+            {
+                Text = "Registre y administre las cuentas de acceso del personal.",
+                Location = new Point(28, 96),
+                AutoSize = true,
+                ForeColor = Color.FromArgb(95, 105, 98),
+                Font = new Font("Segoe UI", 9.5F)
+            };
+
+            Controls.Add(descripcion);
+
+            GroupBox grupo = new GroupBox
+            {
+                Text = "Datos de la cuenta",
+                Location = new Point(25, 125),
+                Size = new Size(1135, 230),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = verdeOscuro,
+                BackColor = Color.White
+            };
+
+            CrearEtiqueta(grupo, "Nombre completo:", 25, 43);
+            txtNombre = CrearCampo(grupo, 165, 39, 350);
+
+            CrearEtiqueta(grupo, "Nombre de usuario:", 565, 43);
+            txtUsuario = CrearCampo(grupo, 715, 39, 370);
+
+            CrearEtiqueta(grupo, "Contraseña:", 25, 94);
+
+            txtContrasena = new TextBox
+            {
+                Location = new Point(165, 90),
+                Size = new Size(350, 32),
+                Font = new Font("Segoe UI", 10),
+                UseSystemPasswordChar = true,
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+
+            grupo.Controls.Add(txtContrasena);
+
+            CrearEtiqueta(grupo, "Rol:", 565, 94);
+
+            cmbRol = new ComboBox
+            {
+                Location = new Point(715, 90),
+                Size = new Size(370, 32),
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(250, 252, 250),
+                FlatStyle = FlatStyle.Flat
+            };
+
+            cmbRol.Items.AddRange(new object[]
+            {
+                "Administrador",
+                "Personal de salud",
+                "Vendedor",
+                "Almacenero"
+            });
+
+            cmbRol.SelectedIndex = 1;
+            grupo.Controls.Add(cmbRol);
+
+            chkActivo = new CheckBox
+            {
+                Text = "Usuario activo",
+                Location = new Point(165, 143),
+                AutoSize = true,
+                Checked = true,
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = Color.FromArgb(65, 75, 68)
+            };
+
+            grupo.Controls.Add(chkActivo);
+
+            FlowLayoutPanel panelBotones = new FlowLayoutPanel
+            {
+                Location = new Point(25, 178),
+                Size = new Size(1080, 42),
+                Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                BackColor = Color.White,
+                Padding = new Padding(0),
+                Margin = new Padding(0)
+            };
+
+            Button btnRegistrar = CrearBoton("REGISTRAR", verde, 125);
+            btnRegistrar.Click += (s, e) => RegistrarUsuario();
+
+            Button btnEditar = CrearBoton("ACTUALIZAR", Color.FromArgb(36, 112, 160), 125);
+            btnEditar.Click += (s, e) => ActualizarUsuario();
+
+            Button btnEliminar = CrearBoton("ELIMINAR", Color.FromArgb(190, 65, 65), 125);
+            btnEliminar.Click += (s, e) => EliminarUsuario();
+
+            Button btnLimpiar = CrearBoton("LIMPIAR", Color.FromArgb(105, 115, 108), 125);
+            btnLimpiar.Click += (s, e) => LimpiarCampos();
+
+            panelBotones.Controls.AddRange(new Control[]
+            {
+                btnRegistrar, btnEditar, btnEliminar, btnLimpiar
+            });
+
+            grupo.Controls.Add(panelBotones);
+            Controls.Add(grupo);
+        }
+
+        private void CrearTabla()
+        {
+            GroupBox grupoTabla = new GroupBox
+            {
+                Text = "Usuarios registrados",
+                Location = new Point(25, 375),
+                Size = new Size(1135, 330),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                         AnchorStyles.Left | AnchorStyles.Right,
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = verdeOscuro,
+                BackColor = Color.White
+            };
+
+            tabla = new DataGridView
+            {
+                Location = new Point(15, 28),
+                Size = new Size(1100, 285),
+                Anchor = AnchorStyles.Top | AnchorStyles.Bottom |
+                         AnchorStyles.Left | AnchorStyles.Right,
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
+                BackgroundColor = Color.White,
+                BorderStyle = BorderStyle.None,
+                RowHeadersVisible = false,
+                AutoGenerateColumns = false,
+                Font = new Font("Segoe UI", 9.5F),
+                EnableHeadersVisualStyles = false,
+                GridColor = Color.FromArgb(225, 232, 227),
+                RowTemplate = { Height = 34 }
+            };
+
+            tabla.ColumnHeadersDefaultCellStyle.BackColor = verdeOscuro;
+            tabla.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            tabla.ColumnHeadersDefaultCellStyle.Font =
+                new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            tabla.ColumnHeadersDefaultCellStyle.Alignment =
+                DataGridViewContentAlignment.MiddleLeft;
+            tabla.ColumnHeadersHeight = 42;
+            tabla.ColumnHeadersHeightSizeMode =
+                DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+
+            tabla.DefaultCellStyle.BackColor = Color.White;
+            tabla.DefaultCellStyle.ForeColor = Color.FromArgb(55, 65, 58);
+            tabla.DefaultCellStyle.SelectionBackColor = Color.FromArgb(218, 237, 224);
+            tabla.DefaultCellStyle.SelectionForeColor = verdeOscuro;
+            tabla.DefaultCellStyle.Padding = new Padding(7, 3, 7, 3);
+
+            tabla.AlternatingRowsDefaultCellStyle.BackColor =
+                Color.FromArgb(246, 250, 247);
+
+            tabla.Columns.Add("Nombre", "Nombre completo");
+            tabla.Columns.Add("Usuario", "Nombre de usuario");
+            tabla.Columns.Add("Rol", "Rol");
+            tabla.Columns.Add("Estado", "Estado");
+
+            tabla.CellClick += (s, e) => SeleccionarUsuario();
+
+            grupoTabla.Controls.Add(tabla);
+            Controls.Add(grupoTabla);
+        }
+
+        private void AplicarEstilosLocales()
+        {
+            foreach (Control control in Controls)
+            {
+                if (control is Panel panel && panel.Dock == DockStyle.Top)
+                    continue;
+
+                if (control is GroupBox grupo)
+                {
+                    grupo.ForeColor = verdeOscuro;
+                    grupo.BackColor = Color.White;
+                }
+            }
+
+            tabla.EnableHeadersVisualStyles = false;
+            tabla.ColumnHeadersDefaultCellStyle.BackColor = verdeOscuro;
+            tabla.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+        }
+
+        private void CrearEtiqueta(Control contenedor, string texto, int x, int y)
+        {
+            contenedor.Controls.Add(new Label
+            {
+                Text = texto,
+                Location = new Point(x, y + 5),
+                Size = new Size(135, 25),
+                Font = new Font("Segoe UI", 9.5F),
+                ForeColor = Color.FromArgb(65, 75, 68),
+                TextAlign = ContentAlignment.MiddleLeft
+            });
+        }
+
+        private CampoInventario CrearCampo(
+            Control contenedor, int x, int y, int ancho)
+        {
+            CampoInventario campo = new CampoInventario
+            {
+                Location = new Point(x, y),
+                Size = new Size(ancho, 36),
+                Font = new Font("Segoe UI", 10),
+                BackColor = Color.FromArgb(250, 252, 250)
+            };
+
+            contenedor.Controls.Add(campo);
+            return campo;
+        }
+
+        private Button CrearBoton(string texto, Color color, int ancho)
+        {
+            return new Button
+            {
+                Text = texto,
+                Size = new Size(ancho, 36),
+                Margin = new Padding(8, 2, 8, 2),
+                BackColor = color,
+                ForeColor = Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Bold),
+                Cursor = Cursors.Hand,
+                UseVisualStyleBackColor = false
+            };
+        }
+
+        private void RegistrarUsuario()
+        {
+            if (!ValidarCampos())
+                return;
+
+            foreach (DataGridViewRow fila in tabla.Rows)
+            {
+                if (string.Equals(
+                    Convert.ToString(fila.Cells["Usuario"].Value),
+                    txtUsuario.Text.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("El nombre de usuario ya está registrado.");
+                    return;
+                }
+            }
+
+            tabla.Rows.Add(
+                txtNombre.Text.Trim(),
+                txtUsuario.Text.Trim(),
+                cmbRol.Text,
+                chkActivo.Checked ? "Activo" : "Inactivo"
+            );
+
+            MessageBox.Show(
+                "Usuario agregado temporalmente.",
+                "SIGEPOSTA",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+
+            LimpiarCampos();
+        }
+
+        private void ActualizarUsuario()
+        {
+            if (tabla.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Seleccione un usuario de la tabla.");
+                return;
+            }
+
+            if (!ValidarCampos())
+                return;
+
+            DataGridViewRow fila = tabla.SelectedRows[0];
+            string usuarioNuevo = txtUsuario.Text.Trim();
+
+            foreach (DataGridViewRow otraFila in tabla.Rows)
+            {
+                if (otraFila == fila)
+                    continue;
+
+                if (string.Equals(
+                    Convert.ToString(otraFila.Cells["Usuario"].Value),
+                    usuarioNuevo,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    MessageBox.Show("Ese nombre de usuario ya pertenece a otra cuenta.");
+                    return;
+                }
+            }
+
+            fila.Cells["Nombre"].Value = txtNombre.Text.Trim();
+            fila.Cells["Usuario"].Value = usuarioNuevo;
+            fila.Cells["Rol"].Value = cmbRol.Text;
+            fila.Cells["Estado"].Value = chkActivo.Checked ? "Activo" : "Inactivo";
+
+            MessageBox.Show("Usuario actualizado temporalmente.");
+            LimpiarCampos();
+        }
+
+        private void EliminarUsuario()
+        {
+            if (tabla.SelectedRows.Count == 0)
+            {
+                MessageBox.Show("Seleccione un usuario de la tabla.");
+                return;
+            }
+
+            DialogResult respuesta = MessageBox.Show(
+                "¿Está seguro de eliminar este usuario?",
+                "Confirmar eliminación",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning
+            );
+
+            if (respuesta == DialogResult.Yes)
+            {
+                tabla.Rows.RemoveAt(tabla.SelectedRows[0].Index);
+                LimpiarCampos();
+            }
+        }
+
+        private void SeleccionarUsuario()
+        {
+            if (tabla.SelectedRows.Count == 0)
+                return;
+
+            DataGridViewRow fila = tabla.SelectedRows[0];
+
+            txtNombre.Text = Convert.ToString(fila.Cells["Nombre"].Value) ?? "";
+            txtUsuario.Text = Convert.ToString(fila.Cells["Usuario"].Value) ?? "";
+            cmbRol.Text = Convert.ToString(fila.Cells["Rol"].Value) ?? "";
+            chkActivo.Checked =
+                Convert.ToString(fila.Cells["Estado"].Value) == "Activo";
+
+            txtContrasena.Clear();
+        }
+
+        private bool ValidarCampos()
+        {
+            if (string.IsNullOrWhiteSpace(txtNombre.Text) ||
+                string.IsNullOrWhiteSpace(txtUsuario.Text) ||
+                string.IsNullOrWhiteSpace(txtContrasena.Text))
+            {
+                MessageBox.Show("Complete el nombre, usuario y contraseña.");
+                return false;
+            }
+
+            if (txtContrasena.Text.Trim().Length < 8)
+            {
+                MessageBox.Show("La contraseña debe tener al menos 8 caracteres.");
+                return false;
+            }
+
+            if (cmbRol.SelectedIndex < 0)
+            {
+                MessageBox.Show("Seleccione un rol.");
+                return false;
+            }
+
+            return true;
+        }
+
+        private void LimpiarCampos()
+        {
+            txtNombre.Clear();
+            txtUsuario.Clear();
+            txtContrasena.Clear();
+            cmbRol.SelectedIndex = 1;
+            chkActivo.Checked = true;
+            tabla.ClearSelection();
+            txtNombre.Focus();
+        }
+    }
+}

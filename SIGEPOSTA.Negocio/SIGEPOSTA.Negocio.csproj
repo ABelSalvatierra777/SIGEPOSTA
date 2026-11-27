@@ -1,0 +1,21 @@
+﻿
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SIGEPOSTA.Entidades\SIGEPOSTA.Entidades.csproj" />
+    <ProjectReference Include="..\SIGEPOSTA.Datos\SIGEPOSTA.Datos.csproj" />
+    <ProjectReference Include="..\SIGEPOSTA.Seguridad\SIGEPOSTA.Seguridad.csproj" />
+    <ProjectReference Include="..\SIGEPOSTA.Respaldos\SIGEPOSTA.Respaldos.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>
